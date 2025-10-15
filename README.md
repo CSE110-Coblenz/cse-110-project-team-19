@@ -1,2 +1,2 @@
-# Lab2
-Fresh repository with main branch.
+# CSE 110 Project
+Repo for CSE 110
