@@ -22,6 +22,7 @@ project-root/
 │   │   │   └── constants.ts        // Game states, event names
 │   │   ├── App.tsx
 │   │   └── index.tsx
+│   ├── dist/                        // Compiled JavaScript (gitignored)
 │   ├── package.json
 │   ├── tsconfig.json
 │   └── README.md
