@@ -1,4 +1,5 @@
 # CSE 110 Project
+```
 project-root/
 ├── client/
 │   ├── public/
@@ -52,3 +53,4 @@ project-root/
 ├── .gitignore
 ├── package.json                     // Root package.json for workspace
 └── README.md
+```
