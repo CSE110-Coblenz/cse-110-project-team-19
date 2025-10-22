@@ -2,41 +2,35 @@
 ```
 project-root/
 ├── client/
+│   ├── index.html                   // Main entry point (Vite requirement)
 │   ├── public/
-│   │   ├── index.html               // Main entry point
-│   │   ├── entrance.html
-│   │   ├── gameRoom.html
-│   │   ├── hundredMeterDash.html
-│   │   ├── favicon.ico
 │   │   └── assets/                  // Static assets (images, fonts, etc.)
 │   │       ├── images/
 │   │       └── fonts/
 │   ├── src/
+│   │   ├── app.ts                   // Main app - manages Konva stage and page routing
 │   │   ├── pages/
-│   │   │   ├── EntrancePage.tsx
-│   │   │   ├── GameRoom.tsx
-│   │   │   └── HundredMeterDash.tsx
+│   │   │   ├── EntrancePage.ts      // Returns Konva Layer for entrance page
+│   │   │   ├── GameRoom.ts          // Returns Konva Layer for game room
+│   │   │   └── HundredMeterDash.ts  // Returns Konva Layer for 100m dash game
 │   │   ├── components/
-│   │   │   ├── Leaderboard.tsx
-│   │   │   └── CountdownTimer.tsx
+│   │   │   ├── Leaderboard.ts       // Konva component for leaderboard
+│   │   │   └── CountdownTimer.ts    // Konva component for countdown
 │   │   ├── services/
 │   │   │   ├── api.ts               // HTTP API calls
 │   │   │   └── socket.ts            // Socket.io client setup
 │   │   ├── types/
-│   │   │   └── index.ts             // TypeScript interfaces/types
-│   │   ├── utils/
-│   │   │   └── constants.ts         // Game states, event names
+│   │   │   └── index.ts             // Client-specific TypeScript types
 │   │   ├── styles/                  // CSS files
 │   │   │   ├── global.css
 │   │   │   ├── entrance.css
 │   │   │   ├── gameRoom.css
 │   │   │   └── hundredMeterDash.css
-│   │   ├── App.tsx
-│   │   └── index.tsx
 │   ├── dist/                         // Compiled output (gitignored)
 │   ├── package.json
 │   ├── tsconfig.json
-│   └── README.md
+│   ├── tsconfig.node.json
+│   └── vite.config.ts
 │
 ├── server/
 │   ├── src/
@@ -48,20 +42,18 @@ project-root/
 │   │   │   ├── gameState.ts         // Game state management
 │   │   │   └── leaderboard.ts       // Leaderboard logic
 │   │   ├── types/
-│   │   │   └── index.ts             // TypeScript interfaces/types
-│   │   ├── utils/
-│   │   │   └── constants.ts         // Game states, timing constants
+│   │   │   └── index.ts             // Server-specific TypeScript types
 │   │   └── server.ts                // Main server file
 │   ├── dist/                         // Compiled output (gitignored)
 │   ├── package.json
-│   ├── tsconfig.json
-│   └── README.md
+│   └── tsconfig.json
 │
 ├── shared/
 │   ├── types/
-│   │   └── index.ts                  // Shared TypeScript types
-│   └── constants.ts                  // Shared constants
+│   │   └── index.ts                  // Shared TypeScript types (Player, GameState, etc.)
+│   └── package.json
 │
 ├── .gitignore
 ├── package.json                      // Root package.json for workspace
+└── README.md
 ```

@@ -3,6 +3,7 @@ import { createServer } from 'http';
 import { Server } from 'socket.io';
 import cors from 'cors';
 import apiRouter from './routes/api.js';
+import { setupGameSocket } from './sockets/gameSocket.js';
 
 const app = express();
 const httpServer = createServer(app);
@@ -20,14 +21,8 @@ app.use(express.json());
 // API routes
 app.use('/api', apiRouter);
 
-// Socket.io connection handling (placeholder for now)
-io.on('connection', (socket) => {
-    console.log('Client connected:', socket.id);
-
-    socket.on('disconnect', () => {
-        console.log('Client disconnected:', socket.id);
-    });
-});
+// Setup Socket.io handlers
+setupGameSocket(io);
 
 // Start server
 const PORT = 3000;
