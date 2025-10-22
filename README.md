@@ -1,6 +1,6 @@
 # CSE 110 Project
 
-test project: 
+## Running App
 1. open terminal 
 ```
 npm install
@@ -12,6 +12,8 @@ npm run dev:client
 ```
 3. Open localhost:5173 in browser
 
+
+## Project Structure
 ```
 project-root/
 ├── client/
