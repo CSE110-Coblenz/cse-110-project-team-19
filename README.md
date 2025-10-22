@@ -1,4 +1,17 @@
 # CSE 110 Project
+
+test project: 
+1. open terminal 
+```
+npm install
+npm run dev:server
+```
+2. In a different terminal window:
+```
+npm run dev:client
+```
+3. Open localhost:5173 in browser
+
 ```
 project-root/
 ├── client/
