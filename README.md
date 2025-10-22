@@ -13,19 +13,11 @@ project-root/
 │   │   │   ├── EntrancePage.ts      // Returns Konva Layer for entrance page
 │   │   │   ├── GameRoom.ts          // Returns Konva Layer for game room
 │   │   │   └── HundredMeterDash.ts  // Returns Konva Layer for 100m dash game
-│   │   ├── components/
-│   │   │   ├── Leaderboard.ts       // Konva component for leaderboard
-│   │   │   └── CountdownTimer.ts    // Konva component for countdown
 │   │   ├── services/
 │   │   │   ├── api.ts               // HTTP API calls
 │   │   │   └── socket.ts            // Socket.io client setup
-│   │   ├── types/
-│   │   │   └── index.ts             // Client-specific TypeScript types
-│   │   ├── styles/                  // CSS files
-│   │   │   ├── global.css
-│   │   │   ├── entrance.css
-│   │   │   ├── gameRoom.css
-│   │   │   └── hundredMeterDash.css
+│   │   └── styles/
+│   │       └── global.css           // Global CSS styles
 │   ├── dist/                         // Compiled output (gitignored)
 │   ├── package.json
 │   ├── tsconfig.json
@@ -39,10 +31,8 @@ project-root/
 │   │   ├── sockets/
 │   │   │   └── gameSocket.ts        // Socket event handlers
 │   │   ├── services/
-│   │   │   ├── gameState.ts         // Game state management
-│   │   │   └── leaderboard.ts       // Leaderboard logic
-│   │   ├── types/
-│   │   │   └── index.ts             // Server-specific TypeScript types
+│   │   │   ├── Game.ts              // Game class (manages single game room)
+│   │   │   └── GameManager.ts       // GameManager singleton (manages all games)
 │   │   └── server.ts                // Main server file
 │   ├── dist/                         // Compiled output (gitignored)
 │   ├── package.json
