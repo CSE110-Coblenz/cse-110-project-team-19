@@ -5,13 +5,30 @@ import { joinGame } from '../services/api.js';
 export function createEntrancePage(stage: Konva.Stage, onSuccess: () => void): Konva.Layer {
     const layer = new Konva.Layer();
 
+    // Create username input element (HTML)
+    const usernameInput = document.createElement('input');
+    usernameInput.type = 'text';
+    usernameInput.id = 'username-input';
+    usernameInput.placeholder = 'Enter username';
+    usernameInput.maxLength = 20;
+    usernameInput.style.position = 'absolute';
+    usernameInput.style.left = '50%';
+    usernameInput.style.top = '200px';
+    usernameInput.style.transform = 'translateX(-50%)';
+    usernameInput.style.width = '300px';
+    usernameInput.style.padding = '10px';
+    usernameInput.style.fontSize = '16px';
+
+    // Add input to DOM
+    document.body.appendChild(usernameInput);
+
     // Create "Join Game" button
     const buttonWidth = 200;
     const buttonHeight = 50;
 
     const buttonRect = new Konva.Rect({
         x: (stage.width() - buttonWidth) / 2,
-        y: 250,
+        y: 300,
         width: buttonWidth,
         height: buttonHeight,
         stroke: 'black',
@@ -20,7 +37,7 @@ export function createEntrancePage(stage: Konva.Stage, onSuccess: () => void): K
 
     const buttonText = new Konva.Text({
         x: (stage.width() - buttonWidth) / 2,
-        y: 250,
+        y: 300,
         width: buttonWidth,
         height: buttonHeight,
         text: 'Join Game',
@@ -37,7 +54,6 @@ export function createEntrancePage(stage: Konva.Stage, onSuccess: () => void): K
 
     // Make button clickable
     joinButton.on('click', async () => {
-        const usernameInput = document.getElementById('username') as HTMLInputElement;
         const username = usernameInput.value.trim();
 
         if (!username) {
@@ -50,6 +66,8 @@ export function createEntrancePage(stage: Konva.Stage, onSuccess: () => void): K
 
             if (response.status === 'success') {
                 console.log('Successfully joined game!');
+                // Hide and remove username input
+                usernameInput.remove();
                 onSuccess(); // Transition to next page
             } else {
                 alert(response.message);
@@ -67,6 +85,19 @@ export function createEntrancePage(stage: Konva.Stage, onSuccess: () => void): K
 
     joinButton.on('mouseleave', () => {
         stage.container().style.cursor = 'default';
+    });
+
+    // Clean up function when layer is hidden
+    layer.on('hide', () => {
+        if (usernameInput.parentNode) {
+            usernameInput.style.display = 'none';
+        }
+    });
+
+    layer.on('show', () => {
+        if (usernameInput.parentNode) {
+            usernameInput.style.display = 'block';
+        }
     });
 
     return layer;
