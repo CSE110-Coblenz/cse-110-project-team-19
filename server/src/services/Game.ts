@@ -1,9 +1,11 @@
 import { Player, GameState, Leaderboard } from '../../../shared/types/index.js';
+import { TIMER_DURATION } from '../constants.js';
 
 export class Game {
     private gameId: number;
     private players: Map<string, Player> = new Map();
     private currentState: GameState = 'PREGAME';
+    private gameTimer: NodeJS.Timeout | null = null;
 
     constructor(gameId: number) {
         this.gameId = gameId;
@@ -17,6 +19,16 @@ export class Game {
     // Get current game state
     getGameState(): GameState {
         return this.currentState;
+    }
+
+    // get next game state
+    getNextGameState(curState: GameState): GameState {
+        let newState : GameState | null = null;
+        if (curState == "PREGAME") {newState = "100M_DASH";}
+        else if (curState == "100M_DASH") {newState = "BEFORE_MINIGAME";}
+        else if (curState == "BEFORE_MINIGAME") {newState = "MINIGAME";}
+        else if (curState == "MINIGAME") {newState = "POSTGAME";}
+        return newState!;
     }
 
     // Add a new player to this game
@@ -83,4 +95,15 @@ export class Game {
     isEmpty(): boolean {
         return this.players.size === 0;
     }
+
+    // Start the gameTimer
+    startTimer(): void {
+		let timeRemaining = TIMER_DURATION; 
+		this.gameTimer = setInterval(() => {
+			timeRemaining--;
+			// this.view.updateTimer(timeRemaining); // REPLACE THIS WITH FUNCTION TO SEND TIMER INFO TO FRONT-END
+			if (timeRemaining <= 0) { this.transitionToState(this.getNextGameState(this.currentState)); } // IF RE-USING TIMER, REPLACE STATE TRANSITION TO WHATEVER NEXT STATE IS
+		}, 1000);
+
+	}
 }
