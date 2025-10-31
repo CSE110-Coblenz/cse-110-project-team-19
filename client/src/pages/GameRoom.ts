@@ -5,6 +5,54 @@ import { Leaderboard } from '../../../shared/types/index.js';
 export function createGameRoom(stage: Konva.Stage, onLeaveGame: () => void): Konva.Layer {
     const layer = new Konva.Layer();
 
+    //Game Room Interactive design
+    let field = new Konva.Group({
+        x: 0,
+        y: 0
+    });
+
+    const grassTop = stage.height() / 4;
+    const grassHeight = (3 * stage.height()) / 4;
+
+    let grass = new Konva.Rect({
+        x: 0,
+        y: grassTop,
+        width: stage.width(),
+        height: grassHeight,
+        fill: 'green',
+        stroke: 'white',
+        strokeWidth: 4
+    });
+
+    field.add(grass);
+
+    const laneCount = 5;
+    const laneGap = 12;
+    const laneHeight = (25 + (grassHeight - laneGap * (laneCount + 1))) / laneCount;
+
+    for (let i = 0; i < laneCount; i++) {
+        const laneY = grassTop + laneGap * (i + 1) + laneHeight * i;
+
+        const remaining = grassTop + grassHeight - laneY;
+        const h = Math.max(0, Math.min(laneHeight, remaining));
+
+        const lane = new Konva.Rect({
+        x: 0,
+        y: laneY,
+        width: stage.width(),
+        height: h/2,
+        fill: "#ED8272", //
+        stroke: "white",
+        strokeWidth: 4,
+    });
+        field.add(lane);
+    }
+
+    // adding the entire field to the game
+    layer.add(field);
+    layer.draw();
+    stage.add(layer);
+
     // Leaderboard text group
     let leaderboardGroup = new Konva.Group({
         x: 50,
@@ -96,6 +144,8 @@ export function createGameRoom(stage: Konva.Stage, onLeaveGame: () => void): Kon
 
     // Initial render with empty leaderboard
     renderLeaderboard([]);
+    
+    stage.add(layer);
 
     return layer;
 }
