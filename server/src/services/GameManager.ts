@@ -100,6 +100,7 @@ export class GameManager {
 
         if (game) {
             game.setPlayerActive(username, false);
+            game.removePlayer(username);
         }
 
         // Remove from global tracking

@@ -58,6 +58,9 @@ export function setupGameSocket(io: Server): void {
             const leaderboardPayload: UpdateLeaderboardPayload = { leaderboard };
             io.to(roomName).emit('updateLeaderboard', leaderboardPayload);
 
+            // debug to test player count is accurate
+            console.log(`Game ${gameId} player count after connect: ${game.getPlayerCount()}`);
+
         } catch (error) {
             console.error('Error joining game:', error);
             socket.emit('error', 'Failed to join game');
@@ -81,6 +84,14 @@ export function setupGameSocket(io: Server): void {
                     const leaderboard = game.getLeaderboard();
                     const payload: UpdateLeaderboardPayload = { leaderboard };
                     io.to(roomName).emit('updateLeaderboard', payload);
+
+                    // debug to test player count is accurate
+                    console.log(`Game ${gameId} player count after disconnect: ${game.getPlayerCount()}`);
+                    // If game is now empty, clean it up
+                    if (game.isEmpty()) {
+                        console.log(`No players left in game ${gameId}. Cleaning up game.`);
+                        gameManager.cleanupEmptyGames();
+                    }
                 }
             }
         });
