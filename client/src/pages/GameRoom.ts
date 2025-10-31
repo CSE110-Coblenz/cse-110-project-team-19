@@ -18,15 +18,43 @@ export function createGameRoom(stage: Konva.Stage, onLeaveGame: () => void): Kon
     });
     layer.add(timerText);
 
+        // Function to update countdown timer
+    function updateTimer(gameState: GameState, time: number): void {
+        let message = '';
+
+        if (gameState === 'PREGAME') {
+            message = `Game starts in: ${time}s`;
+        } else if (gameState === 'BEFORE_MINIGAME') {
+            message = `Next minigame in: ${time}s`;
+        } else if (gameState === 'POSTGAME') {
+            message = `Game Over!`;
+        } else {
+            message = `Time: ${time}s`;
+        }
+
+        timerText.text(message);
+        layer.draw();
+    }
+
+    // Expose public method to update leaderboard (called by app.ts)
+    (layer as any).updateLeaderboard = (leaderboard: Leaderboard) => {
+        console.log('GameRoom: Updating leaderboard', leaderboard);
+        renderLeaderboard(leaderboard);
+    };
+
+    // Expose public method to update timer (called by app.ts)
+    (layer as any).updateTimer = (gameState: GameState, time: number) => {
+        console.log('GameRoom: Updating timer', gameState, time);
+        updateTimer(gameState, time);
+    };
+
     //Game Room Interactive design
     let field = new Konva.Group({
         x: 0,
         y: 0
     });
-
     const grassTop = stage.height() / 4;
     const grassHeight = (3 * stage.height()) / 4;
-
     let grass = new Konva.Rect({
         x: 0,
         y: grassTop,
@@ -36,19 +64,15 @@ export function createGameRoom(stage: Konva.Stage, onLeaveGame: () => void): Kon
         stroke: 'white',
         strokeWidth: 4
     });
-
     field.add(grass);
-
+    
     const laneCount = 5;
     const laneGap = 12;
     const laneHeight = (25 + (grassHeight - laneGap * (laneCount + 1))) / laneCount;
-
     for (let i = 0; i < laneCount; i++) {
         const laneY = grassTop + laneGap * (i + 1) + laneHeight * i;
-
         const remaining = grassTop + grassHeight - laneY;
         const h = Math.max(0, Math.min(laneHeight, remaining));
-
         const lane = new Konva.Rect({
         x: 0,
         y: laneY,
@@ -63,15 +87,7 @@ export function createGameRoom(stage: Konva.Stage, onLeaveGame: () => void): Kon
 
     // adding the entire field to the game
     layer.add(field);
-    layer.draw();
     stage.add(layer);
-    
-    // Leaderboard text group
-    let leaderboardGroup = new Konva.Group({
-        x: 50,
-        y: 100,
-    });
-    layer.add(leaderboardGroup);
 
     // Leave Game button
     const buttonWidth = 150;
@@ -116,6 +132,14 @@ export function createGameRoom(stage: Konva.Stage, onLeaveGame: () => void): Kon
         stage.container().style.cursor = 'default';
     });
 
+    // Leaderboard text group
+    let leaderboardGroup = new Konva.Group({
+        x: 50,
+        y: 100,
+    });
+    layer.add(leaderboardGroup);
+
+    
     // Function to render leaderboard
     function renderLeaderboard(leaderboard: Leaderboard): void {
         // Clear existing leaderboard
@@ -149,40 +173,10 @@ export function createGameRoom(stage: Konva.Stage, onLeaveGame: () => void): Kon
         layer.draw();
     }
 
-    // Function to update countdown timer
-    function updateTimer(gameState: GameState, time: number): void {
-        let message = '';
-
-        if (gameState === 'PREGAME') {
-            message = `Game starts in: ${time}s`;
-        } else if (gameState === 'BEFORE_MINIGAME') {
-            message = `Next minigame in: ${time}s`;
-        } else if (gameState === 'POSTGAME') {
-            message = `Game Over!`;
-        } else {
-            message = `Time: ${time}s`;
-        }
-
-        timerText.text(message);
-        layer.draw();
-    }
-
-    // Expose public method to update leaderboard (called by app.ts)
-    (layer as any).updateLeaderboard = (leaderboard: Leaderboard) => {
-        console.log('GameRoom: Updating leaderboard', leaderboard);
-        renderLeaderboard(leaderboard);
-    };
-
-    // Expose public method to update timer (called by app.ts)
-    (layer as any).updateTimer = (gameState: GameState, time: number) => {
-        console.log('GameRoom: Updating timer', gameState, time);
-        updateTimer(gameState, time);
-    };
-
     // Initial render with empty leaderboard
     renderLeaderboard([]);
     
-    stage.add(layer);
+    stage.draw();
 
     return layer;
 }
