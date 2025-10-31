@@ -6,6 +6,7 @@ class SocketService {
     private username: string = '';
     private transitionHandler: ((gameState: GameState) => void) | null = null;
     private leaderboardHandler: ((payload: UpdateLeaderboardPayload) => void) | null = null;
+    private countdownHandler: ((payload: CountdownTickPayload) => void) | null = null;
 
     // Initialize and connect to the server
     connect(username: string): void {
@@ -49,7 +50,9 @@ class SocketService {
 
         this.socket.on('countDownTick', (payload: CountdownTickPayload) => {
             console.log('Countdown tick:', payload);
-            // TODO: Update countdown UI
+            if (this.countdownHandler) {
+                this.countdownHandler(payload);
+            }
         });
 
         this.socket.on('transitionGame', (payload: TransitionGamePayload) => {
@@ -63,6 +66,11 @@ class SocketService {
     // Set the universal leaderboard update handler
     setLeaderboardHandler(handler: (payload: UpdateLeaderboardPayload) => void): void {
         this.leaderboardHandler = handler;
+    }
+
+    // Set the universal countdown tick handler
+    setCountdownHandler(handler: (payload: CountdownTickPayload) => void): void {
+        this.countdownHandler = handler;
     }
 
     // Register a callback for countdown ticks

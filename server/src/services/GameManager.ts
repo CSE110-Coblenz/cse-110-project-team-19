@@ -1,4 +1,6 @@
 import { Game } from './Game.js';
+import { Server } from 'socket.io';
+import { MAX_PLAYERS_PER_ROOM, JOINABLE_TIME_THRESHOLD } from '../constants.js';
 
 interface ActiveUser {
     username: string;
@@ -12,13 +14,19 @@ export class GameManager {
     private activeUsers: Map<string, ActiveUser> = new Map(); // socketId -> ActiveUser
     private usernameToSocketId: Map<string, string> = new Map(); // username -> socketId
     private nextGameId: number = 1;
+    private io: Server;
 
-    private constructor() {}
+    private constructor(io: Server) {
+        this.io = io;
+    }
 
     // Get singleton instance
-    static getInstance(): GameManager {
+    static getInstance(io?: Server): GameManager {
         if (!GameManager.instance) {
-            GameManager.instance = new GameManager();
+            if (!io) {
+                throw new Error('GameManager must be initialized with io Server on first call');
+            }
+            GameManager.instance = new GameManager(io);
         }
         return GameManager.instance;
     }
@@ -28,19 +36,46 @@ export class GameManager {
         return this.usernameToSocketId.has(username);
     }
 
-    // Get or create a game for a player (for now, just get/create game ID 1)
-    assignPlayerToGame(): Game {
-        // For now, everyone goes to the first game
-        // Create it if it doesn't exist
-        if (!this.games.has(1)) {
-            this.games.set(1, new Game(1));
+    // Find an available game that meets the matching criteria
+    // Returns a game if one is available, otherwise null
+    private findAvailableGame(): Game | null {
+        for (const game of this.games.values()) {
+            // Only consider games in PREGAME state
+            if (game.getGameState() === 'PREGAME') {
+                const timeRemaining = game.getTimeRemaining();
+                const activePlayerCount = game.getActivePlayerCount();
+
+                // Check if game meets criteria:
+                // 1. More than JOINABLE_TIME_THRESHOLD seconds remaining
+                // 2. Less than MAX_PLAYERS_PER_ROOM active players
+                if (timeRemaining > JOINABLE_TIME_THRESHOLD && activePlayerCount < MAX_PLAYERS_PER_ROOM) {
+                    return game;
+                }
+            }
         }
-        return this.games.get(1)!;
+        return null;
+    }
+
+    // Create a new game with the given ID
+    private createNewGame(): Game {
+        const gameId = this.nextGameId++;
+        const game = new Game(gameId, this.io);
+        this.games.set(gameId, game);
+        return game;
     }
 
     // Add a player to a game via socket connection
-    addPlayerToGame(socketId: string, username: string): { game: Game; gameId: number } {
-        const game = this.assignPlayerToGame();
+    addPlayerToGame(socketId: string, username: string): { game: Game; gameId: number; isNewGame: boolean } {
+        // Try to find an available game that meets the matching criteria
+        let game = this.findAvailableGame();
+        let isNewGame = false;
+
+        // If no available game found, create a new one
+        if (!game) {
+            game = this.createNewGame();
+            isNewGame = true;
+        }
+
         const gameId = game.getGameId();
 
         // Add player to the game
@@ -50,7 +85,7 @@ export class GameManager {
         this.activeUsers.set(socketId, { username, gameId, socketId });
         this.usernameToSocketId.set(username, socketId);
 
-        return { game, gameId };
+        return { game, gameId, isNewGame };
     }
 
     // Handle player disconnect
@@ -102,5 +137,3 @@ export class GameManager {
         }
     }
 }
-
-export const gameManager = GameManager.getInstance();
