@@ -2,6 +2,8 @@
 import Konva from 'konva';
 import { createEntrancePage } from './pages/EntrancePage.js';
 import { createGameRoom } from './pages/GameRoom.js';
+import { createHundredMeterDash } from './pages/HundredMeterDash.js';
+import { createJavelin } from './pages/Javelin.js';
 import { socketService } from './services/socket.js';
 import { GameState } from '../../shared/types/index.js';
 
@@ -13,7 +15,7 @@ const stage = new Konva.Stage({
 });
 
 // Page management
-type PageName = 'entrance' | 'gameRoom' | '100mDash';
+type PageName = 'entrance' | 'gameRoom' | '100mDash' | 'javelin';
 let currentPage: PageName = 'entrance';
 const pages: Map<PageName, Konva.Layer> = new Map();
 
@@ -32,9 +34,18 @@ const gameRoomLayer = createGameRoom(stage, () => {
 });
 pages.set('gameRoom', gameRoomLayer);
 
-// TODO: Create 100m dash layer
-// const dash100mLayer = createHundredMeterDash(stage);
-// pages.set('100mDash', dash100mLayer);
+// Create 100M dash layer
+const dash100mLayer = createHundredMeterDash(stage, () => {
+    showPage('100mDash');
+});
+pages.set('100mDash', dash100mLayer);
+
+// Create Javelin layer
+const javelinLayer = createJavelin(stage, () => {
+    showPage('javelin');
+});
+pages.set('javelin', javelinLayer);
+
 
 // Add all layers to stage (initially hidden except entrance)
 pages.forEach((layer, pageName) => {
@@ -84,7 +95,7 @@ socketService.setTransitionHandler((gameState: GameState) => {
             break;
         case 'MINIGAME':
             // TODO: Show minigame page
-            showPage('gameRoom');
+            showPage('javelin');
             break;
         case 'POSTGAME':
             showPage('gameRoom');
