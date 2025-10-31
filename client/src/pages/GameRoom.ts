@@ -65,6 +65,7 @@ export function createGameRoom(stage: Konva.Stage, onLeaveGame: () => void): Kon
     layer.add(field);
     layer.draw();
     stage.add(layer);
+    
     // Leaderboard text group
     let leaderboardGroup = new Konva.Group({
         x: 50,
