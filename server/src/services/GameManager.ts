@@ -1,4 +1,7 @@
 import { Game } from './Game.js';
+import { Server } from 'socket.io';  
+import { MAX_PLAYERS_PER_ROOM, JOINABLE_TIME_THRESHOLD } from '../constants.js';
+
 
 interface ActiveUser {
     username: string;
@@ -61,6 +64,12 @@ export class GameManager {
         return null;
     }
 
+    private assignPlayerToGame(): Game {
+        const existing = this.findAvailableGame();
+        if (existing) return existing;
+        return this.createNewGame();
+    }
+
     // Create a new game with the given ID
     private createNewGame(): Game {
         const gameId = this.nextGameId++;
@@ -70,19 +79,30 @@ export class GameManager {
     }
 
     // Add a player to a game via socket connection
-    addPlayerToGame(socketId: string, username: string): { game: Game; gameId: number } {
+  addPlayerToGame(socketId: string, username: string): { game: Game; gameId: number } {
+        
+        if (this.usernameToGameIdEver.has(username)) {
+            const gameId = this.usernameToGameIdEver.get(username)!;
+            if (!this.games.has(gameId)) {
+                this.games.set(gameId, new Game(gameId, this.io)); // 中文：补 io
+            }
+            const game = this.games.get(gameId)!;
+            game.setPlayerActive(username, true);
+
+            this.activeUsers.set(socketId, { username, gameId, socketId });
+            this.usernameToSocketId.set(username, socketId);
+            return { game, gameId };
+        }
+
+        
         const game = this.assignPlayerToGame();
         const gameId = game.getGameId();
 
-  
-  game.addPlayer(username);
+        game.addPlayer(username);
+        this.usernameToGameIdEver.set(username, gameId);
 
-  
-  this.usernameToGameIdEver.set(username, gameId);
-
-  
-  this.activeUsers.set(socketId, { username, gameId, socketId });
-  this.usernameToSocketId.set(username, socketId);
+        this.activeUsers.set(socketId, { username, gameId, socketId });
+        this.usernameToSocketId.set(username, socketId);
 
         return { game, gameId };
     }
@@ -137,4 +157,3 @@ export class GameManager {
     }
 }
 
-export const gameManager = GameManager.getInstance();

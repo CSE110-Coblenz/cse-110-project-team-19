@@ -25,14 +25,15 @@ router.post('/join-game', (req: Request<{}, {}, JoinGameRequest>, res: Response<
         });
     }
 
-
+       const gameManager = GameManager.getInstance();
     // Check if username is already active across all games
     if (gameManager.isUsernameActive(username)) {
-        return res.json({
-            status: 'failure',
-            message: 'Username already exists'
-        });
-    }
+  return res.status(409).json({
+    status: 'failure',
+    message: 'Username already exists'
+  });
+}
+
     // Success - player will be added to game when socket connects
     return res.status(200).json({
         status: 'success',
