@@ -3,7 +3,7 @@ import Konva from 'konva';
 import { joinGame } from '../services/api.js';
 import { socketService } from '../services/socket.js';
 
-export function createEntrancePage(stage: Konva.Stage, onSuccess: () => void): Konva.Layer {
+export function createEntrancePage(stage: Konva.Stage, _onSuccess: () => void): Konva.Layer {
     const layer = new Konva.Layer();
 
     // Create username input element (HTML)
@@ -62,26 +62,35 @@ export function createEntrancePage(stage: Konva.Stage, onSuccess: () => void): K
             return;
         }
 
+        const REG = /^[A-Za-z0-9_]{3,16}$/;                    
+        if (!REG.test(username)) {                              
+            alert('Username must be 3–16 chars: letters, numbers, underscore only');
+            return;
+        }
+         joinButton.listening(false);
+
         try {
             // First, call the API to validate username
             const response = await joinGame(username);
 
-            if (response.status === 'success') {
+             if (response.status === 'success') {
                 console.log('API join successful, connecting to socket...');
 
                 // Hide username input
                 usernameInput.style.display = 'none';
+                 
 
                 // Connect to socket with username
                 // Transition will be handled by universal transition handler in app.ts
                 socketService.connect(username);
-
             } else {
                 alert(response.message);
             }
         } catch (error) {
             console.error('Error joining game:', error);
             alert('Failed to join game. Please try again.');
+        }finally {
+         joinButton.listening(true); 
         }
     });
 

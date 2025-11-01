@@ -16,7 +16,8 @@ const stage = new Konva.Stage({
 
 // Page management
 type PageName = 'entrance' | 'gameRoom' | '100mDash' | 'javelin';
-let currentPage: PageName = 'entrance';
+let _currentPage: PageName = 'entrance';
+void _currentPage;
 const pages: Map<PageName, Konva.Layer> = new Map();
 
 // Create entrance page layer
@@ -68,7 +69,7 @@ function showPage(pageName: PageName): void {
     const page = pages.get(pageName);
     if (page) {
         page.visible(true);
-        currentPage = pageName;
+        _currentPage = pageName;
         // Show entrance input when entering entrance page
         if (pageName === 'entrance') {
             (page as any).showInput();
