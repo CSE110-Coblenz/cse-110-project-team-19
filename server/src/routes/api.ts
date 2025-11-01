@@ -1,6 +1,6 @@
 import express, { Request, Response } from 'express';
 import { JoinGameRequest, JoinGameResponse } from '../../../shared/types/index.js';
-import { gameManager } from '../services/GameManager.js';
+import { GameManager } from '../services/GameManager.js';
 
 const router = express.Router();
 
@@ -27,8 +27,8 @@ router.post('/join-game', (req: Request<{}, {}, JoinGameRequest>, res: Response<
 
 
     // Check if username is already active across all games
-   if (gameManager.isUsernameActive(username)) {
-        return res.status(409).json({
+    if (gameManager.isUsernameActive(username)) {
+        return res.json({
             status: 'failure',
             message: 'Username already exists'
         });

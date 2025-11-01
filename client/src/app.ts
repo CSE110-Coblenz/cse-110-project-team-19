@@ -101,5 +101,12 @@ socketService.setLeaderboardHandler((payload) => {
     (gameRoomLayer as any).updateLeaderboard(payload.leaderboard);
 });
 
+// Register universal countdown tick handler with SocketService
+socketService.setCountdownHandler((payload) => {
+    console.log('app.ts: Received countdown tick', payload);
+    // Call GameRoom's public updateTimer method
+    (gameRoomLayer as any).updateTimer(payload.game_state, payload.time);
+});
+
 // Initial render
 stage.draw();

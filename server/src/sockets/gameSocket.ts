@@ -1,8 +1,10 @@
 import { Server, Socket } from 'socket.io';
-import { gameManager } from '../services/GameManager.js';
-import { UpdateLeaderboardPayload, TransitionGamePayload } from '../../../shared/types/index.js';
+import { GameManager } from '../services/GameManager.js';
+import { UpdateLeaderboardPayload, TransitionGamePayload, CountdownTickPayload } from '../../../shared/types/index.js';
 
 export function setupGameSocket(io: Server): void {
+    // Initialize GameManager with io instance
+    const gameManager = GameManager.getInstance(io);
     io.on('connection', (socket: Socket) => {
         console.log('Client connected:', socket.id);
 
@@ -25,22 +27,39 @@ export function setupGameSocket(io: Server): void {
             }
 
             // Add player to a game
-            const { game, gameId } = gameManager.addPlayerToGame(socket.id, username);
+            const { game, gameId, isNewGame } = gameManager.addPlayerToGame(socket.id, username);
 
             // Join the Socket.IO room for this game
             const roomName = `game-${gameId}`;
             socket.join(roomName);
 
-            console.log(`Player ${username} joined game ${gameId}`);
+            console.log(`Player ${username} joined game ${gameId}${isNewGame ? ' (new game created)' : ''}`);
+
+            // If this is a new game, start the timer
+            if (isNewGame) {
+                game.startTimer();
+            }
 
             // Emit transitionGame event to THIS player only (trigger page transition)
             const transitionPayload: TransitionGamePayload = { game_state: 'PREGAME' };
             socket.emit('transitionGame', transitionPayload);
 
+            // If joining an existing game, send current countdown state to this player
+            if (!isNewGame && game.getGameState() === 'PREGAME') {
+                const countdownPayload: CountdownTickPayload = {
+                    game_state: game.getGameState(),
+                    time: game.getTimeRemaining()
+                };
+                socket.emit('countDownTick', countdownPayload);
+            }
+
             // Emit updated leaderboard to all players in this game
             const leaderboard = game.getLeaderboard();
             const leaderboardPayload: UpdateLeaderboardPayload = { leaderboard };
             io.to(roomName).emit('updateLeaderboard', leaderboardPayload);
+
+            // debug to test player count is accurate
+            console.log(`Game ${gameId} player count after connect: ${game.getPlayerCount()}`);
 
         } catch (error) {
             console.error('Error joining game:', error);
@@ -65,6 +84,14 @@ export function setupGameSocket(io: Server): void {
                     const leaderboard = game.getLeaderboard();
                     const payload: UpdateLeaderboardPayload = { leaderboard };
                     io.to(roomName).emit('updateLeaderboard', payload);
+
+                    // debug to test player count is accurate
+                    console.log(`Game ${gameId} player count after disconnect: ${game.getPlayerCount()}`);
+                    // If game is now empty, clean it up
+                    if (game.isEmpty()) {
+                        console.log(`No players left in game ${gameId}. Cleaning up game.`);
+                        gameManager.cleanupEmptyGames();
+                    }
                 }
             }
         });
