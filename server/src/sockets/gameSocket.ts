@@ -2,6 +2,7 @@ import { Server, Socket } from 'socket.io';
 import { GameManager } from '../services/GameManager.js';
 import { UpdateLeaderboardPayload, TransitionGamePayload, CountdownTickPayload } from '../../../shared/types/index.js';
 
+const USERNAME_REGEX = /^[A-Za-z0-9_]{3,16}$/;
 export function setupGameSocket(io: Server): void {
     // Initialize GameManager with io instance
     const gameManager = GameManager.getInstance(io);
@@ -10,13 +11,22 @@ export function setupGameSocket(io: Server): void {
 
         // Get username from connection handshake
         const username = socket.handshake.auth.username;
+           const trimmed = String(username ?? '').trim();
 
-        if (!username || typeof username !== 'string') {
+        if (!trimmed) {
             console.error('No username provided in connection');
-            socket.emit('error', 'Username is required');
+            socket.emit('error', 'Username is required'); // 与原行为一致
             socket.disconnect();
             return;
         }
+
+        if (!USERNAME_REGEX.test(trimmed)) {
+            console.error('Invalid username format:', trimmed);
+            socket.emit('error', 'Username must be 3–16 chars: letters, numbers, underscore only');
+            socket.disconnect();
+            return;
+        }
+
 
         try {
             // Check if username is already active
