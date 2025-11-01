@@ -1,5 +1,6 @@
 import { Game } from './Game.js';
 
+
 interface ActiveUser {
     username: string;
     gameId: number;
@@ -10,6 +11,8 @@ export class GameManager {
     private static instance: GameManager;
     private games: Map<number, Game> = new Map();
     private activeUsers: Map<string, ActiveUser> = new Map(); // socketId -> ActiveUser
+    private usernameToGameIdEver: Map<string, number> = new Map();
+
     private usernameToSocketId: Map<string, string> = new Map(); // username -> socketId
     private nextGameId: number = 1;
 
@@ -28,6 +31,11 @@ export class GameManager {
         return this.usernameToSocketId.has(username);
     }
 
+    isUsernamePresent(username: string): boolean 
+    { 
+        return this.usernameToGameIdEver.has(username); 
+    }
+
     // Get or create a game for a player (for now, just get/create game ID 1)
     assignPlayerToGame(): Game {
         // For now, everyone goes to the first game
@@ -39,19 +47,43 @@ export class GameManager {
     }
 
     // Add a player to a game via socket connection
-    addPlayerToGame(socketId: string, username: string): { game: Game; gameId: number } {
-        const game = this.assignPlayerToGame();
-        const gameId = game.getGameId();
-
-        // Add player to the game
-        game.addPlayer(username);
-
-        // Track in global active users
-        this.activeUsers.set(socketId, { username, gameId, socketId });
-        this.usernameToSocketId.set(username, socketId);
-
-        return { game, gameId };
+   // Add a player to a game via socket connection
+addPlayerToGame(socketId: string, username: string): { game: Game; gameId: number } {
+  
+  if (this.usernameToGameIdEver.has(username)) {
+    const gameId = this.usernameToGameIdEver.get(username)!;
+    
+    if (!this.games.has(gameId)) {
+      this.games.set(gameId, new Game(gameId));
     }
+    const game = this.games.get(gameId)!;
+
+    
+    game.setPlayerActive(username, true);
+
+    
+    this.activeUsers.set(socketId, { username, gameId, socketId });
+    this.usernameToSocketId.set(username, socketId);
+
+    return { game, gameId };
+  }
+
+  
+  const game = this.assignPlayerToGame();
+  const gameId = game.getGameId();
+
+  
+  game.addPlayer(username);
+
+  
+  this.usernameToGameIdEver.set(username, gameId);
+
+  
+  this.activeUsers.set(socketId, { username, gameId, socketId });
+  this.usernameToSocketId.set(username, socketId);
+
+  return { game, gameId };
+}
 
     // Handle player disconnect
     removePlayer(socketId: string): { game: Game | undefined; username: string } | null {
@@ -102,5 +134,7 @@ export class GameManager {
         }
     }
 }
+
+
 
 export const gameManager = GameManager.getInstance();

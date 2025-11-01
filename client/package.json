@@ -5,7 +5,9 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "vitest run",          
+    "test:watch": "vitest"  
   },
   "dependencies": {
     "konva": "^9.3.16",
@@ -13,6 +15,8 @@
   },
   "devDependencies": {
     "typescript": "^5.7.2",
-    "vite": "^6.0.1"
+    "vite": "^6.0.1",
+    "vitest": "^1.6.0",            
+    "@types/node": "^20.12.0" 
   }
 }

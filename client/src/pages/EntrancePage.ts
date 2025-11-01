@@ -3,6 +3,8 @@ import Konva from 'konva';
 import { joinGame } from '../services/api.js';
 import { socketService } from '../services/socket.js';
 
+const NAME_RE = /^[A-Za-z0-9_]{3,16}$/;
+
 export function createEntrancePage(stage: Konva.Stage, onSuccess: () => void): Konva.Layer {
     const layer = new Konva.Layer();
 
@@ -62,6 +64,12 @@ export function createEntrancePage(stage: Konva.Stage, onSuccess: () => void): K
             return;
         }
 
+         if (!NAME_RE.test(username)) { 
+            alert('Invalid username: 3–16 chars, letters/numbers/underscore only'); // 【修改】
+            return; 
+        } 
+
+
         try {
             // First, call the API to validate username
             const response = await joinGame(username);
@@ -79,9 +87,9 @@ export function createEntrancePage(stage: Konva.Stage, onSuccess: () => void): K
             } else {
                 alert(response.message);
             }
-        } catch (error) {
+        } catch (error:any) {
             console.error('Error joining game:', error);
-            alert('Failed to join game. Please try again.');
+            alert(error?.message || 'Failed to join game. Please try again.');
         }
     });
 

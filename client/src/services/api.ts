@@ -13,9 +13,19 @@ export async function joinGame(username: string): Promise<JoinGameResponse> {
         body: JSON.stringify(request),
     });
 
-    if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-    }
+     let data: any = null; 
+    try {                                                   
+        data = await response.json();                       
+    } catch { /* ignore parse error; keep data = null */ }  
 
-    return await response.json();
+    
+    if (!response.ok) {                                     
+        throw new Error(                                    
+            (data && data.message) ? data.message          
+            : `HTTP error! status: ${response.status}`      
+        );                                                  
+    }                                                       
+
+    
+    return (data ?? { status: 'success', message: '' });  
 }
