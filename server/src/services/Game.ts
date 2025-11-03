@@ -1,5 +1,5 @@
 import { Player, GameState, Leaderboard } from '../../../shared/types/index.js';
-import { PREGAME_DURATION } from '../constants.js';
+import { PREGAME_DURATION, HUNDRED_METER_DASH_DURATION, PRE_MINIGAME_DURATION, JAVELIN_MINIGAME_DURATION } from '../constants.js';
 import { Server } from 'socket.io';
 
 export class Game {
@@ -102,8 +102,26 @@ export class Game {
 
     // Start the game timer and emit countdown events
     startTimer(): void {
-        // Initialize timer
-        this.timeRemaining = PREGAME_DURATION;
+        // Safety: clear any existing timer before starting a new one
+        this.stopTimer();
+        // Set timer duration based on current state
+        switch (this.currentState) {
+            case 'PREGAME':
+                this.timeRemaining = PREGAME_DURATION;
+                break;
+            case '100M_DASH':
+                this.timeRemaining = HUNDRED_METER_DASH_DURATION;
+                break;
+            case 'BEFORE_MINIGAME':
+                this.timeRemaining = PRE_MINIGAME_DURATION;
+                break;
+            case 'MINIGAME':
+                // Use javelin minigame duration for now; adjust if more minigames are added
+                this.timeRemaining = JAVELIN_MINIGAME_DURATION;
+                break;
+            default:
+                this.timeRemaining = 0;
+        }
 
         // Emit initial countdown tick immediately
         this.io.to(`game-${this.gameId}`).emit('countDownTick', {
@@ -131,6 +149,11 @@ export class Game {
                 this.io.to(`game-${this.gameId}`).emit('transitionGame', {
                     game_state: nextState
                 });
+
+                // Automatically start the next state's timer unless we're in POSTGAME
+                if (nextState !== 'POSTGAME') {
+                    this.startTimer();
+                }
             }
         }, 1000);
     }

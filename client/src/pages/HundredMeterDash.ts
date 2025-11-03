@@ -2,7 +2,7 @@
 // NOTE: this will soon be split into MVC structure 
 import Konva from 'konva';
 
-export function createHundredMeterDash(stage: Konva.Stage, onSuccess: () => void): Konva.Layer {
+export function createHundredMeterDash(stage: Konva.Stage, onLeaveGame: () => void): Konva.Layer {
     const layer = new Konva.Layer();
     
     // Display game name
@@ -38,7 +38,7 @@ export function createHundredMeterDash(stage: Konva.Stage, onSuccess: () => void
         y: 20,
         width: countdownWidth,
         height: countdownHeight,
-        text: 'Time: xx:xx',
+        text: 'Time: --s',
         fontSize: 32,
         align: 'center',
         verticalAlign: 'middle',
@@ -48,6 +48,57 @@ export function createHundredMeterDash(stage: Konva.Stage, onSuccess: () => void
     countdownDisplay.add(countdownRect);
     countdownDisplay.add(countdownText);
     layer.add(countdownDisplay);
+
+    // Local function to update the timer display
+    function updateTimer(time: number): void {
+        countdownText.text(`Time: ${Math.max(0, time)}s`);
+        layer.draw();
+    }
+
+    // Expose public method for app.ts to push timer updates
+    (layer as any).updateTimer = (time: number) => {
+        updateTimer(time);
+    };
+
+    // Leave Game button (positioned below the countdown)
+    const buttonWidth = 150;
+    const buttonHeight = 40;
+    const leaveButtonRect = new Konva.Rect({
+        x: stage.width() - buttonWidth - 20,
+        y: 20 + countdownHeight + 10,
+        width: buttonWidth,
+        height: buttonHeight,
+        fill: 'red',
+        stroke: 'black',
+        strokeWidth: 2,
+    });
+
+    const leaveButtonText = new Konva.Text({
+        x: stage.width() - buttonWidth - 20,
+        y: 20 + countdownHeight + 10,
+        width: buttonWidth,
+        height: buttonHeight,
+        text: 'Leave Game',
+        fontSize: 16,
+        align: 'center',
+        verticalAlign: 'middle',
+    });
+
+    const leaveButton = new Konva.Group();
+    leaveButton.add(leaveButtonRect);
+    leaveButton.add(leaveButtonText);
+    layer.add(leaveButton);
+
+    leaveButton.on('click', () => {
+        onLeaveGame();
+    });
+
+    leaveButton.on('mouseenter', () => {
+        stage.container().style.cursor = 'pointer';
+    });
+    leaveButton.on('mouseleave', () => {
+        stage.container().style.cursor = 'default';
+    });
 
     return layer;
 }
