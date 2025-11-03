@@ -37,13 +37,17 @@ pages.set('gameRoom', gameRoomLayer);
 
 // Create 100M dash layer
 const dash100mLayer = createHundredMeterDash(stage, () => {
-    showPage('100mDash');
+    console.log('Leaving game...');
+    socketService.disconnect();
+    showPage('entrance');
 });
 pages.set('100mDash', dash100mLayer);
 
 // Create Javelin layer
 const javelinLayer = createJavelin(stage, () => {
-    showPage('javelin');
+    console.log('Leaving game...');
+    socketService.disconnect();
+    showPage('entrance');
 });
 pages.set('javelin', javelinLayer);
 
@@ -118,6 +122,15 @@ socketService.setCountdownHandler((payload) => {
     console.log('app.ts: Received countdown tick', payload);
     // Call GameRoom's public updateTimer method
     (gameRoomLayer as any).updateTimer(payload.game_state, payload.time);
+
+    // Forward to game-specific pages so they can show the same countdown
+    if (payload.game_state === '100M_DASH') {
+        (dash100mLayer as any).updateTimer(payload.time);
+    }
+
+    if (payload.game_state === 'MINIGAME') {
+        (javelinLayer as any).updateTimer(payload.time);
+    }
 });
 
 // Initial render
