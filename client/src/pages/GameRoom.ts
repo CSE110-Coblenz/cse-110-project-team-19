@@ -1,5 +1,6 @@
 // GameRoom.ts - Creates the game room page layer
 import Konva from 'konva';
+import fansImageSrc from "../../../shared/fans.jpg";
 import { Leaderboard, GameState } from '../../../shared/types/index.js';
 
 export function createGameRoom(stage: Konva.Stage, onLeaveGame: () => void): Konva.Layer {
@@ -7,18 +8,35 @@ export function createGameRoom(stage: Konva.Stage, onLeaveGame: () => void): Kon
 
     // Countdown timer at the top center
     const timerText = new Konva.Text({
-        x: stage.width() / 2 - 150,
-        y: 20,
+        x: 0,
+        y: 5,
         width: 300,
         text: 'Waiting for game to start...',
         fontSize: 24,
         fontStyle: 'bold',
         align: 'center',
-        fill: 'blue',
+        fill: 'black',
     });
-    layer.add(timerText);
 
-        // Function to update countdown timer
+    const timerbox = new Konva.Rect({
+        x: 0,
+        y: 0,
+        width: 300,
+        height: 30,
+        fill: "white",
+        stroke: 'black',
+        strokeWidth: 2,
+    });
+
+    const TimerGroup = new Konva.Group({
+        x: stage.width() / 2 - 150,
+        y: 20,
+    });
+
+    TimerGroup.add(timerbox);
+    TimerGroup.add(timerText);
+
+    // Function to update countdown timer
     function updateTimer(gameState: GameState, time: number): void {
         let message = '';
 
@@ -53,6 +71,18 @@ export function createGameRoom(stage: Konva.Stage, onLeaveGame: () => void): Kon
         x: 0,
         y: 0
     });
+
+    const background = new Konva.Group({ x: 0, y: 0 });
+
+    Konva.Image.fromURL(fansImageSrc, (image) => {
+        // size it to the stage so it won’t overflow
+        image.position({ x: 0, y: 0 });
+        image.width(stage.width());
+        image.height(stage.height()/2);
+        background.add(image);
+        layer.batchDraw(); // redraw when image finishes loading
+    });
+
     const grassTop = stage.height() / 4;
     const grassHeight = (3 * stage.height()) / 4;
     let grass = new Konva.Rect({
@@ -86,8 +116,11 @@ export function createGameRoom(stage: Konva.Stage, onLeaveGame: () => void): Kon
     }
 
     // adding the entire field to the game
+    layer.add(background);
     layer.add(field);
     stage.add(layer);
+
+    //
 
     // Leave Game button
     const buttonWidth = 150;
@@ -98,6 +131,7 @@ export function createGameRoom(stage: Konva.Stage, onLeaveGame: () => void): Kon
         y: 20,
         width: buttonWidth,
         height: buttonHeight,
+        fill: "red",
         stroke: 'black',
         strokeWidth: 2,
     });
@@ -134,38 +168,50 @@ export function createGameRoom(stage: Konva.Stage, onLeaveGame: () => void): Kon
 
     // Leaderboard text group
     let leaderboardGroup = new Konva.Group({
-        x: 50,
-        y: 100,
+        x: 450,
+        y: 200,
     });
     layer.add(leaderboardGroup);
 
-    
     // Function to render leaderboard
     function renderLeaderboard(leaderboard: Leaderboard): void {
         // Clear existing leaderboard
         leaderboardGroup.destroyChildren();
 
-        // Title
+        // backboard
+        const backboard = new Konva.Rect({
+            x:0,
+            y:0,
+            height: 300,
+            width: 330,
+            fill: "gold",
+            stroke: "black",
+            strokeWidth: 2,
+        });
+        leaderboardGroup.add(backboard);
+    
+        //title
         const title = new Konva.Text({
-            x: 0,
-            y: 0,
+            x: 100,
+            y: 30,
             text: 'LEADERBOARD',
-            fontSize: 24,
+            fontSize: 20,
             fontStyle: 'bold',
+            fill: "black"
         });
         leaderboardGroup.add(title);
 
         // Render each player
         leaderboard.forEach((player, index) => {
-            const yPos = 40 + (index * 30);
+            const yPos = 70 + (index * 30);
 
             // Player info text
             const playerText = new Konva.Text({
-                x: 0,
+                x: 10,
                 y: yPos,
                 text: `${index + 1}. ${player.username} - Total: ${player.total_score} (100m: ${player["100m_score"]}, Mini: ${player.minigame1_score}) ${player.active ? '' : '[INACTIVE]'}`,
                 fontSize: 16,
-                fill: player.active ? 'black' : 'gray',
+                fill: player.active ? 'black' : 'red',
             });
             leaderboardGroup.add(playerText);
         });
@@ -175,7 +221,7 @@ export function createGameRoom(stage: Konva.Stage, onLeaveGame: () => void): Kon
 
     // Initial render with empty leaderboard
     renderLeaderboard([]);
-    
+    layer.add(TimerGroup);
     stage.draw();
 
     return layer;
