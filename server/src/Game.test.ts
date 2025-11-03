@@ -92,21 +92,19 @@ describe('Game / GameManager', () => {
         expect(game2).toBe(game1); // should be the same game instance
         expect(game1.getPlayerCount()).toBe(2);
 
-        // Disconnect first player
-        gm.removePlayer(socketId1);
-        expect(game1.hasPlayer(username1)).toBe(false);
-        // Disconnect second player
-        gm.removePlayer(socketId2);
-        expect(game1.hasPlayer(username2)).toBe(false);
+    // Disconnect first player
+    gm.removePlayer(socketId1);
+    expect(game1.hasPlayer(username1)).toBe(false);
 
-        // Now the game should be empty and cleaned up, make sure gameCleanup was called
-        const gameCleanupSpy = vi.spyOn(gm, 'cleanupEmptyGames');
-        gm.removePlayer(socketId2);
-        expect(gameCleanupSpy).toHaveBeenCalled();
+    // Now spy on cleanup and disconnect the second player; cleanup should run
+    const gameCleanupSpy = vi.spyOn(gm, 'cleanupEmptyGames');
+    gm.removePlayer(socketId2);
+    expect(game1.hasPlayer(username2)).toBe(false);
+    expect(gameCleanupSpy).toHaveBeenCalled();
 
-        // The game should be removed from GameManager's tracking
-        const foundGame = (gm as any).games.get(game1.getGameId());
-        expect(foundGame).toBeUndefined();
+    // The game should be removed from GameManager's tracking
+    const foundGame = (gm as any).games.get(game1.getGameId());
+    expect(foundGame).toBeUndefined();
 
     });
 
