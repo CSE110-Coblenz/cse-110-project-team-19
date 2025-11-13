@@ -10,7 +10,7 @@ export function createJavelin(stage: Konva.Stage, onLeaveGame: () => void): Konv
         x: 0,
         y: 20,
         width: stage.width(),
-        align: 'center',
+        align: 'left',
         
         text: 'Javelin Throw',
         fontSize: 50,

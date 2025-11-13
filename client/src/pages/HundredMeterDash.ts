@@ -1,6 +1,7 @@
 // HundredMeterDash.ts - Creates the hundred meter dash game layer
 // NOTE: this will soon be split into MVC structure 
 import Konva from 'konva';
+import {HUNDRED_METER_DASH_DURATION} from 'server/src/constants.ts'
 
 export function createHundredMeterDash(stage: Konva.Stage, onLeaveGame: () => void): Konva.Layer {
     const layer = new Konva.Layer();
@@ -10,7 +11,7 @@ export function createHundredMeterDash(stage: Konva.Stage, onLeaveGame: () => vo
         x: 0,
         y: 20,
         width: stage.width(),
-        align: 'center',
+        align: 'left',
         
         text: '100 Meter Dash',
         fontSize: 50,
@@ -23,6 +24,7 @@ export function createHundredMeterDash(stage: Konva.Stage, onLeaveGame: () => vo
     // Countdown text
     const countdownWidth = 200;
     const countdownHeight = 80;
+    let countdownTime = 0;
 
     const countdownRect = new Konva.Rect({
         x: stage.width() - countdownWidth - 20,
@@ -51,7 +53,9 @@ export function createHundredMeterDash(stage: Konva.Stage, onLeaveGame: () => vo
 
     // Local function to update the timer display
     function updateTimer(time: number): void {
-        countdownText.text(`Time: ${Math.max(0, time)}s`);
+        //countdownText.text(`Time: ${Math.max(0, time)}s`);
+        countdownTime = Math.max(0, time);
+        countdownText.text(`Time: ${countdownTime}s`)
         layer.draw();
     }
 
@@ -97,6 +101,49 @@ export function createHundredMeterDash(stage: Konva.Stage, onLeaveGame: () => vo
         stage.container().style.cursor = 'pointer';
     });
     leaveButton.on('mouseleave', () => {
+        stage.container().style.cursor = 'default';
+    });
+
+    // ADD POINTS button (for testing purposes)
+
+    const addPointsRect = new Konva.Rect({
+        width: buttonWidth * 2,
+        height: buttonHeight * 2,
+        fill: 'green',
+        stroke: 'black',
+        strokeWidth: 2,
+    });
+    const addPointsText = new Konva.Text({
+        width: buttonWidth * 2,
+        height: buttonHeight * 2,
+        text: 'ADD POINTS',
+        fontSize: 16,
+        align: 'center',
+        verticalAlign: 'middle',
+    });
+    const addPointsButton = new Konva.Group({
+        x: (stage.width() - buttonWidth) / 2,
+        y: (stage.height() - buttonHeight) / 2,
+    });
+    addPointsButton.add(addPointsRect);
+    addPointsButton.add(addPointsText);
+    layer.add(addPointsButton);
+
+    let lastPressTime = HUNDRED_METER_DASH_DURATION;
+    const pointsCeiling = 400;
+    const pointsFloor = 100;
+    const timeToFloor = HUNDRED_METER_DASH_DURATION / 3;
+    addPointsButton.on('click', () => {
+        let timeSpent = lastPressTime - countdownTime;
+        let score = pointsFloor + (pointsCeiling - pointsFloor) * (1 - (timeSpent / timeToFloor));
+        score = Math.max(pointsFloor, Math.min(pointsCeiling, Math.floor(score)));
+        console.log(`Added ${score} points!`);
+        lastPressTime = countdownTime;
+    });
+    addPointsButton.on('mouseenter', () => {
+        stage.container().style.cursor = 'pointer';
+    });
+    addPointsButton.on('mouseleave', () => {
         stage.container().style.cursor = 'default';
     });
 
