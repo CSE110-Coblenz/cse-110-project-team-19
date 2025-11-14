@@ -36,3 +36,26 @@ export interface TransitionGamePayload {
 export interface UpdateLeaderboardPayload {
     leaderboard: Leaderboard;
 }
+
+// Problem types for minigames
+export type ProblemType = 'MULTIPLICATION' | 'DIVISION';
+
+export interface Problem {
+    type: ProblemType;
+    operand1: number;
+    operand2: number;
+}
+
+// Socket payloads for problem flow
+export interface NewProblemPayload {
+    problem: Problem;
+}
+
+export interface SubmitProblemRequest {
+    answer: number;
+}
+
+export interface SubmitProblemResponse {
+    correct: boolean;
+    finished: boolean;
+}
