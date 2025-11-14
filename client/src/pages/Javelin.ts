@@ -3,7 +3,6 @@
 import Konva from 'konva';
 import {JAVELIN_MINIGAME_DURATION} from 'server/src/constants.ts'
 import { socketService } from 'client/src/services/socket.ts';
-import { count } from 'console';
 
 export function createJavelin(stage: Konva.Stage, onLeaveGame: () => void): Konva.Layer {
     const layer = new Konva.Layer();
