@@ -139,7 +139,7 @@ export function createHundredMeterDash(stage: Konva.Stage, onLeaveGame: () => vo
         score = Math.max(pointsFloor, Math.min(pointsCeiling, Math.floor(score)));
         socketService.addPoints(socketService.getUsername(), '100m_score', score);
         
-        console.log(`Added ${score} points!`);
+        console.log(`Added ${score} points, time to answer: ${timeSpent}s`);
         lastPressTime = countdownTime;
     });
     addPointsButton.on('mouseenter', () => {
