@@ -75,6 +75,7 @@ export class Game {
     }
 
     // Remove a player from this game
+    // Used when cleaning up after disconnect
     removePlayer(username: string): void {
         this.players.delete(username);
     }
@@ -259,12 +260,13 @@ export class Game {
 
     // Get number of players in this game
     getPlayerCount(): number {
-        return this.players.size;
+        // Iterate through players, only return number of active players
+        return Array.from(this.players.values()).filter(player => player.active).length;
     }
 
     // Check if game has any players
     isEmpty(): boolean {
-        return this.players.size === 0;
+        return this.getPlayerCount() === 0;
     }
 
     // Start the game timer and emit countdown events

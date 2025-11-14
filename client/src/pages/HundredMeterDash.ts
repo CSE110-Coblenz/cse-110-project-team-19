@@ -57,6 +57,64 @@ export function createHundredMeterDash(stage: Konva.Stage, onLeaveGame: () => vo
     });
     layer.add(feedbackText);
     
+import standImageSrc from "../../../shared/fanStands.jpg";
+
+export function createHundredMeterDash(stage: Konva.Stage, onLeaveGame: () => void): Konva.Layer {
+    const layer = new Konva.Layer();
+    // Creating minigame background graphics
+    const MeterDashBack = new Konva.Group({
+        x: 0,
+        y: 0,
+    });
+    Konva.Image.fromURL(standImageSrc, (image) => {
+        // size it to the stage so it won’t overflow
+        image.position({ x: 0, y: 0 });
+        image.width(stage.width());
+        image.height(stage.height()/4);
+        MeterDashBack.add(image);
+        layer.batchDraw(); // redraw when image finishes loading
+    });
+
+    const trackField = new Konva.Rect({
+        x:0,
+        y:stage.height()/4,
+        width: stage.width(),
+        height: stage.height()/2,
+        fill: '#ED8272',
+        stroke: 'white'
+    });
+    MeterDashBack.add(trackField);
+
+    for(let i = 0; i < 5; i++){
+        let lanesY = (stage.height()/4) + ( i* ((stage.height()/2)/5));
+
+        const laneLine = new Konva.Line({
+            points: [0, lanesY, stage.width(), lanesY],
+            stroke: "white",
+            strokeWidth: 5,
+        });
+
+        MeterDashBack.add(laneLine);
+    }
+
+    const finishLine = new Konva.Line({
+        points: [3*stage.height()/4 + 200, (3*stage.height()/4), 7*stage.height()/8 + 200, (stage.height()/4)],
+        stroke: 'white',
+        strokeWidth: 5
+    });
+    MeterDashBack.add(finishLine);
+
+    const grass = new Konva.Rect({
+        x:0,
+        y:3*stage.height()/4,
+        width: stage.width(),
+        height: stage.height()/4,
+        fill: '#64cc68ff',
+        stroke: 'white'
+    });
+
+    MeterDashBack.add(grass);
+    layer.add(MeterDashBack);
     // Display game name
     const gameNameText = new Konva.Text({
         x: 0,
@@ -71,32 +129,36 @@ export function createHundredMeterDash(stage: Konva.Stage, onLeaveGame: () => vo
     });
     layer.add(gameNameText);
 
-
     // Countdown text
     const countdownWidth = 200;
-    const countdownHeight = 80;
+    const countdownHeight = 30;
 
     const countdownRect = new Konva.Rect({
-        x: stage.width() - countdownWidth - 20,
-        y: 20,
+        x: 0,
+        y: 0,
         width: countdownWidth,
         height: countdownHeight,
+        fill: 'white',
         stroke: 'black',
+        align: 'center',
         strokeWidth: 2,
     });
 
     const countdownText = new Konva.Text({
-        x: stage.width() - countdownWidth - 20,
-        y: 20,
+        x: 0,
+        y: 5,
         width: countdownWidth,
         height: countdownHeight,
         text: 'Time: --s',
-        fontSize: 32,
+        fontSize: 28,
         align: 'center',
         verticalAlign: 'middle',
     });
 
-    const countdownDisplay = new Konva.Group();
+    const countdownDisplay = new Konva.Group({
+        x: stage.width() / 2 - 120,
+        y: 90,
+    });
     countdownDisplay.add(countdownRect);
     countdownDisplay.add(countdownText);
     layer.add(countdownDisplay);
@@ -113,21 +175,22 @@ export function createHundredMeterDash(stage: Konva.Stage, onLeaveGame: () => vo
     };
 
     // Leave Game button (positioned below the countdown)
+    const leaveButtonGroup = new Konva.Group();
     const buttonWidth = 150;
     const buttonHeight = 40;
     const leaveButtonRect = new Konva.Rect({
         x: stage.width() - buttonWidth - 20,
-        y: 20 + countdownHeight + 10,
+        y: 20,
         width: buttonWidth,
         height: buttonHeight,
-        fill: 'red',
+        fill: "red",
         stroke: 'black',
         strokeWidth: 2,
     });
 
     const leaveButtonText = new Konva.Text({
         x: stage.width() - buttonWidth - 20,
-        y: 20 + countdownHeight + 10,
+        y: 20,
         width: buttonWidth,
         height: buttonHeight,
         text: 'Leave Game',
@@ -136,19 +199,18 @@ export function createHundredMeterDash(stage: Konva.Stage, onLeaveGame: () => vo
         verticalAlign: 'middle',
     });
 
-    const leaveButton = new Konva.Group();
-    leaveButton.add(leaveButtonRect);
-    leaveButton.add(leaveButtonText);
-    layer.add(leaveButton);
+    leaveButtonGroup.add(leaveButtonRect);
+    leaveButtonGroup.add(leaveButtonText);
+    layer.add(leaveButtonGroup);
 
-    leaveButton.on('click', () => {
+    leaveButtonGroup.on('click', () => {
         onLeaveGame();
     });
 
-    leaveButton.on('mouseenter', () => {
+    leaveButtonGroup.on('mouseenter', () => {
         stage.container().style.cursor = 'pointer';
     });
-    leaveButton.on('mouseleave', () => {
+    leaveButtonGroup.on('mouseleave', () => {
         stage.container().style.cursor = 'default';
     });
 

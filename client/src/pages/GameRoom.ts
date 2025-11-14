@@ -90,7 +90,7 @@ export function createGameRoom(stage: Konva.Stage, onLeaveGame: () => void): Kon
         y: grassTop,
         width: stage.width(),
         height: grassHeight,
-        fill: 'green',
+        fill: '#64cc68ff',
         stroke: 'white',
         strokeWidth: 4
     });
