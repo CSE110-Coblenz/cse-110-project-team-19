@@ -152,5 +152,24 @@ export function setupGameSocket(io: Server): void {
                 console.error('Error in submitProblem:', err);
             }
         });
+
+        // Javelin multiple-choice submission (per-player)
+        socket.on('submitMultipleChoice', (req: any) => {
+            try {
+                const active = gameManager.getActiveUser(socket.id);
+                if (!active) return;
+                const game = gameManager.getGame(active.gameId);
+                if (!game) return;
+
+                const username = active.username;
+                const choice = req?.choice as 'A' | 'B' | 'C' | 'D';
+                const result = game.handleJavelinSubmit(username, choice);
+
+                // Send private response to player
+                socket.emit('submitMultipleChoiceResult', { correct: result.correct, finished: result.finished });
+            } catch (err) {
+                console.error('Error in submitMultipleChoice:', err);
+            }
+        });
     });
 }

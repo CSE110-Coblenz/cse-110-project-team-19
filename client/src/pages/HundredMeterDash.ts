@@ -12,7 +12,7 @@ export function createHundredMeterDash(stage: Konva.Stage, onLeaveGame: () => vo
     answerInput.placeholder = 'Enter answer';
     answerInput.style.position = 'absolute';
     answerInput.style.left = '50%';
-    answerInput.style.top = '140px';
+    answerInput.style.top = '180px';
     answerInput.style.transform = 'translateX(-50%)';
     answerInput.style.width = '160px';
     answerInput.style.padding = '6px';
@@ -23,14 +23,16 @@ export function createHundredMeterDash(stage: Konva.Stage, onLeaveGame: () => vo
     submitBtn.textContent = 'Submit';
     submitBtn.style.position = 'absolute';
     submitBtn.style.left = '50%';
-    submitBtn.style.top = '190px';
+    submitBtn.style.top = '230px';
     submitBtn.style.transform = 'translateX(-50%)';
     submitBtn.style.padding = '8px 20px';
     submitBtn.style.fontSize = '16px';
     submitBtn.style.display = 'none';
 
-    document.body.appendChild(answerInput);
-    document.body.appendChild(submitBtn);
+    // Append inputs to the Konva container so positioning is relative to the stage
+    const container = stage.container();
+    container.appendChild(answerInput);
+    container.appendChild(submitBtn);
 
     // Problem display (static problem statement)
     const problemText = new Konva.Text({
