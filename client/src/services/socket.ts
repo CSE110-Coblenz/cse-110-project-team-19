@@ -1,5 +1,6 @@
 import { io, Socket } from 'socket.io-client';
 import { UpdateLeaderboardPayload, CountdownTickPayload, TransitionGamePayload, GameState } from '../../../shared/types/index.js';
+import { ScoreType } from '../../../shared/types/index.js';
 
 class SocketService {
     private socket: Socket | null = null;
@@ -82,6 +83,12 @@ class SocketService {
     // Set the universal transition handler
     setTransitionHandler(handler: (gameState: GameState) => void): void {
         this.transitionHandler = handler;
+    }
+
+    // Add points for the current player
+    addPoints(username: string, scoreType: ScoreType, score: number): void {
+        if (!this.socket) return;
+        this.socket.emit('addPoints', username, scoreType, score);
     }
 
     // Disconnect from server

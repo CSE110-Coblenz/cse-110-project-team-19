@@ -1,7 +1,6 @@
 import { Server, Socket } from 'socket.io';
 import { GameManager } from '../services/GameManager.js';
-import { UpdateLeaderboardPayload, TransitionGamePayload, CountdownTickPayload } from '../../../shared/types/index.js';
-
+import { UpdateLeaderboardPayload, TransitionGamePayload, CountdownTickPayload, ScoreType } from '../../../shared/types/index.js';
 const USERNAME_REGEX = /^[A-Za-z0-9_]{3,16}$/;
 export function setupGameSocket(io: Server): void {
     // Initialize GameManager with io instance
@@ -76,6 +75,16 @@ export function setupGameSocket(io: Server): void {
             socket.emit('error', 'Failed to join game');
             socket.disconnect();
         }
+
+        socket.on('addPoints', (username: string, scoreType: ScoreType, score: number) =>{
+            const game = gameManager.getGameByUsername(username);
+            if (game){
+                game.updateScore(username, scoreType, score, 'add');
+                const roomName = `game-${game.getGameId()}`;
+                io.to(roomName).emit('updateLeaderboard', { leaderboard: game.getLeaderboard() });
+                console.log(`Updated score for ${username}: ${scoreType} = ${score}`);
+            }
+        })
 
         // Handle player disconnect
         socket.on('disconnect', () => {

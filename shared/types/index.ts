@@ -1,6 +1,8 @@
 // Game state type
 export type GameState = "PREGAME" | "100M_DASH" | "BEFORE_MINIGAME" | "MINIGAME" | "POSTGAME";
 
+export type ScoreType = '100m_score' | 'minigame1_score'
+
 // Player interface
 export interface Player {
     username: string;

@@ -123,6 +123,18 @@ export class GameManager {
         return this.games.get(activeUser.gameId);
     }
 
+    getGameByUsername(username: string): Game | undefined {
+        const socketId = this.usernameToSocketId.get(username);
+        if (!socketId) {
+            return undefined;
+        }
+        const activeUser = this.activeUsers.get(socketId);
+        if (!activeUser) {
+            return undefined;
+        }
+        return this.games.get(activeUser.gameId);
+    }
+
     // Get user info by socket ID
     getActiveUser(socketId: string): ActiveUser | undefined {
         return this.activeUsers.get(socketId);

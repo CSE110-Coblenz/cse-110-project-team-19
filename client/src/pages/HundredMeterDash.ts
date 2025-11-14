@@ -2,6 +2,7 @@
 // NOTE: this will soon be split into MVC structure 
 import Konva from 'konva';
 import {HUNDRED_METER_DASH_DURATION} from 'server/src/constants.ts'
+import { socketService } from 'client/src/services/socket.ts';
 
 export function createHundredMeterDash(stage: Konva.Stage, onLeaveGame: () => void): Konva.Layer {
     const layer = new Konva.Layer();
@@ -105,7 +106,6 @@ export function createHundredMeterDash(stage: Konva.Stage, onLeaveGame: () => vo
     });
 
     // ADD POINTS button (for testing purposes)
-
     const addPointsRect = new Konva.Rect({
         width: buttonWidth * 2,
         height: buttonHeight * 2,
@@ -137,6 +137,8 @@ export function createHundredMeterDash(stage: Konva.Stage, onLeaveGame: () => vo
         let timeSpent = lastPressTime - countdownTime;
         let score = pointsFloor + (pointsCeiling - pointsFloor) * (1 - (timeSpent / timeToFloor));
         score = Math.max(pointsFloor, Math.min(pointsCeiling, Math.floor(score)));
+        socketService.addPoints(socketService.getUsername(), '100m_score', score);
+        
         console.log(`Added ${score} points!`);
         lastPressTime = countdownTime;
     });

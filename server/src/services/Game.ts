@@ -1,4 +1,4 @@
-import { Player, GameState, Leaderboard } from '../../../shared/types/index.js';
+import { Player, GameState, Leaderboard, ScoreType } from '../../../shared/types/index.js';
 import { PREGAME_DURATION, HUNDRED_METER_DASH_DURATION, PRE_MINIGAME_DURATION, JAVELIN_MINIGAME_DURATION } from '../constants.js';
 import { Server } from 'socket.io';
 
@@ -78,10 +78,17 @@ export class Game {
     }
 
     // Update player score
-    updateScore(username: string, scoreType: '100m_score' | 'minigame1_score', value: number): void {
+    updateScore(username: string, scoreType: ScoreType, value: number, updateType: 'add' | 'set'): void {
         const player = this.players.get(username);
         if (player) {
-            player[scoreType] = value;
+            let newScore = value;
+            if (updateType === 'add') {
+                newScore = (player[scoreType] || 0) + value;
+            }
+            else if (updateType === 'set') {
+                newScore = value;
+            }
+            player[scoreType] = newScore;
             player.total_score = player["100m_score"] + player.minigame1_score;
         }
     }
