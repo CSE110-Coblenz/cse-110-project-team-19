@@ -24,7 +24,7 @@ const pages: Map<PageName, Konva.Layer> = new Map();
 const entranceLayer = createEntrancePage(stage, () => {
     showPage('gameRoom');
 });
-pages.set('javelin', entranceLayer);
+pages.set('entrance', entranceLayer);
 
 // Create game room layer
 const gameRoomLayer = createGameRoom(stage, () => {
@@ -49,7 +49,7 @@ const javelinLayer = createJavelin(stage, () => {
     socketService.disconnect();
     showPage('entrance');
 });
-pages.set('entrance', javelinLayer);
+pages.set('javelin', javelinLayer);
 
 
 // Add all layers to stage (initially hidden except entrance)
