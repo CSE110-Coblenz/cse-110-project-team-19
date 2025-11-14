@@ -105,7 +105,7 @@ export function createHundredMeterDash(stage: Konva.Stage, onLeaveGame: () => vo
         stage.container().style.cursor = 'default';
     });
 
-    // ADD POINTS button (for testing purposes)
+    // ADD POINTS DEMO button (for testing purposes)
     const addPointsRect = new Konva.Rect({
         width: buttonWidth * 2,
         height: buttonHeight * 2,
