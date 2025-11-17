@@ -1,5 +1,5 @@
 import { io, Socket } from 'socket.io-client';
-import { UpdateLeaderboardPayload, CountdownTickPayload, TransitionGamePayload, GameState } from '../../../shared/types/index.js';
+import { UpdateLeaderboardPayload, CountdownTickPayload, TransitionGamePayload, GameState, Problem, NewProblemPayload, SubmitProblemResponse, MultipleChoiceProblem, SendMultipleChoicePayload, SubmitMultipleChoiceRequest, SubmitMultipleChoiceResponse } from '../../../shared/types/index.js';
 
 class SocketService {
     private socket: Socket | null = null;
@@ -7,6 +7,10 @@ class SocketService {
     private transitionHandler: ((gameState: GameState) => void) | null = null;
     private leaderboardHandler: ((payload: UpdateLeaderboardPayload) => void) | null = null;
     private countdownHandler: ((payload: CountdownTickPayload) => void) | null = null;
+    private newProblemHandler: ((problem: Problem) => void) | null = null;
+    private submitResultHandler: ((resp: SubmitProblemResponse) => void) | null = null;
+    private newMCHandler: ((p: MultipleChoiceProblem) => void) | null = null;
+    private submitMCResultHandler: ((r: SubmitMultipleChoiceResponse) => void) | null = null;
 
     // Initialize and connect to the server
     connect(username: string): void {
@@ -61,6 +65,30 @@ class SocketService {
                 this.transitionHandler(payload.game_state);
             }
         });
+
+        this.socket.on('newProblem', (payload: NewProblemPayload) => {
+            console.log('New problem received:', payload.problem);
+            if (this.newProblemHandler) {
+                this.newProblemHandler(payload.problem);
+            }
+        });
+
+        this.socket.on('sendMultipleChoice', (payload: SendMultipleChoicePayload) => {
+            console.log('Received multiple choice problem:', payload.problem);
+            if (this.newMCHandler) this.newMCHandler(payload.problem);
+        });
+
+        this.socket.on('submitMultipleChoiceResult', (payload: SubmitMultipleChoiceResponse) => {
+            console.log('Received multiple choice result:', payload);
+            if (this.submitMCResultHandler) this.submitMCResultHandler(payload);
+        });
+
+        this.socket.on('submitProblemResult', (payload: SubmitProblemResponse) => {
+            console.log('Submit result received:', payload);
+            if (this.submitResultHandler) {
+                this.submitResultHandler(payload);
+            }
+        });
     }
 
     // Set the universal leaderboard update handler
@@ -90,6 +118,31 @@ class SocketService {
             this.socket.disconnect();
             this.socket = null;
         }
+    }
+
+    // Emit submitProblem with answer
+    submitAnswer(answer: number): void {
+        if (!this.socket) return;
+        this.socket.emit('submitProblem', { answer });
+    }
+
+    // Emit submitMultipleChoice when the user selects an option
+    submitMultipleChoice(choice: 'A' | 'B' | 'C' | 'D'): void {
+        if (!this.socket) return;
+        const payload: SubmitMultipleChoiceRequest = { choice };
+        this.socket.emit('submitMultipleChoice', payload);
+    }
+
+    // Set problem flow handlers for 100m dash
+    setProblemHandlers(onNew: (p: Problem) => void, onResult: (r: SubmitProblemResponse) => void): void {
+        this.newProblemHandler = onNew;
+        this.submitResultHandler = onResult;
+    }
+
+    // Set multiple-choice handlers for javelin
+    setJavelinHandlers(onNew: (p: MultipleChoiceProblem) => void, onResult: (r: SubmitMultipleChoiceResponse) => void): void {
+        this.newMCHandler = onNew;
+        this.submitMCResultHandler = onResult;
     }
 
     // Get current username

@@ -36,3 +36,50 @@ export interface TransitionGamePayload {
 export interface UpdateLeaderboardPayload {
     leaderboard: Leaderboard;
 }
+
+// Problem types for minigames
+export type ProblemType = 'MULTIPLICATION' | 'DIVISION';
+
+export interface Problem {
+    type: ProblemType;
+    operand1: number;
+    operand2: number;
+}
+
+// Multiple-choice problem for javelin (server will NOT include the correct label when sending to clients)
+export interface MultipleChoiceProblem {
+    type: 'DIVISION';
+    operand1: number;
+    operand2: number;
+    A: string;
+    B: string;
+    C: string;
+    D: string;
+}
+
+// Socket payloads for problem flow
+export interface NewProblemPayload {
+    problem: Problem;
+}
+
+export interface SendMultipleChoicePayload {
+    problem: MultipleChoiceProblem;
+}
+
+export interface SubmitProblemRequest {
+    answer: number;
+}
+
+export interface SubmitMultipleChoiceRequest {
+    choice: 'A' | 'B' | 'C' | 'D';
+}
+
+export interface SubmitMultipleChoiceResponse {
+    correct: boolean;
+    finished: boolean;
+}
+
+export interface SubmitProblemResponse {
+    correct: boolean;
+    finished: boolean;
+}

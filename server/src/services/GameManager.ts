@@ -128,6 +128,11 @@ export class GameManager {
         return this.activeUsers.get(socketId);
     }
 
+    // Get socketId for a username if present
+    getSocketIdForUsername(username: string): string | undefined {
+        return this.usernameToSocketId.get(username);
+    }
+
     // Clean up empty games (optional, for later)
     cleanupEmptyGames(): void {
         for (const [gameId, game] of this.games.entries()) {
