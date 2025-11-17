@@ -1,30 +1,7 @@
+// @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-// Provide a tiny in-process DOM shim when running in the Node test environment
-if (typeof globalThis.document === 'undefined') {
-    const _nodes: Record<string, any> = {};
-    const body: any = { innerHTML: '', style: {}, appendChild(el: any) { if (el && el.id) _nodes[el.id] = el; } };
-
-    globalThis.document = {
-        body,
-        createElement(tag: string) {
-            const el: any = { tag, _id: '', style: {}, children: [], appendChild() {} };
-            Object.defineProperty(el, 'id', {
-                get() { return this._id; },
-                set(v: string) { this._id = v; if (v) _nodes[v] = this; },
-                configurable: true,
-                enumerable: true,
-            });
-            return el;
-        },
-        getElementById(id: string) { return _nodes[id] || null; },
-    } as any;
-        // provide window and alert shims used by the UI code/tests
-        if (typeof (globalThis as any).window === 'undefined') (globalThis as any).window = globalThis;
-        if (typeof (globalThis as any).alert === 'undefined') (globalThis as any).alert = () => undefined;
-}
-
-// Not worth it to keep mocking Konva, just import the real thing
+// Not worth it to keep mocking Konva or DOM, just import the real thing
 import { createEntrancePage } from './pages/EntrancePage.js';
 import { createGameRoom } from './pages/GameRoom.js';
 import { createHundredMeterDash } from './pages/HundredMeterDash.js';
