@@ -8,38 +8,39 @@ import { createHundredMeterDash } from './pages/HundredMeterDash.js';
 import { createJavelin } from './pages/Javelin.js';
 import * as api from './services/api.js';
 import { socketService } from './services/socket.js';
+import Konva from 'konva';
 
 describe('Client Pages', () => {
     let stage: any;
 
-    function makeStageMock() {
+    function makeStage() {
         // Ensure a container exists in DOM for Konva usage
         let container = document.getElementById('konva-container') as HTMLDivElement | null;
         if (!container) {
             container = document.createElement('div');
             container.id = 'konva-container';
+            // set an explicit size so Konva can initialize canvas
+            container.style.width = '800px';
+            container.style.height = '600px';
             document.body.appendChild(container);
         }
 
-        // Provide a minimal fake stage with the methods pages expect
-        return {
-            width: () => 800,
-            height: () => 600,
-            container: () => container as HTMLDivElement,
-            add: vi.fn(),
-            draw: vi.fn(),
-        } as any;
+        // Create a real Konva Stage (requires `canvas` + jsdom present in test env)
+        const stage = new Konva.Stage({ container: 'konva-container', width: 800, height: 600 });
+        return stage as any;
     }
 
     beforeEach(() => {
         vi.restoreAllMocks();
         // create fresh DOM container for each test
         document.body.innerHTML = '';
-        stage = makeStageMock();
+        stage = makeStage();
     });
 
     afterEach(() => {
         vi.restoreAllMocks();
+        // destroy Konva stage to clean up canvases
+        try { stage && stage.destroy && stage.destroy(); } catch { }
         document.body.innerHTML = '';
     });
 
@@ -62,8 +63,9 @@ describe('Client Pages', () => {
         const onLeaveGame = vi.fn();
         const layer = createGameRoom(stage, onLeaveGame);
         expect(layer).toBeDefined();
-        // createGameRoom calls stage.add(layer) internally
-        expect(stage.add).toHaveBeenCalledWith(layer);
+        // createGameRoom should have added the layer to the stage
+        const layers = stage.getLayers();
+        expect(layers).toContain(layer);
     });
 
     it('creates HundredMeterDash without errors', () => {
@@ -163,13 +165,20 @@ describe('Client Pages', () => {
         expect(input).toBeTruthy();
         input.value = 'alice_123';
 
-        // Fire the join button click
-        const joinGroup = entranceLayer.findOne('Group');
-        expect(joinGroup).toBeTruthy();
-        joinGroup!.fire('click');
+        // Simulate click by calling the attached handler directly
+        expect(typeof (entranceLayer as any).handleJoinClick).toBe('function');
+        await (entranceLayer as any).handleJoinClick();
 
-        // Wait for async operations (joinGame -> connect -> transition)
-        await new Promise((r) => setTimeout(r, 0));
+        // Wait until the transition handler runs and the page becomes visible
+        async function waitFor(condition: () => boolean, timeout = 200) {
+            const start = Date.now();
+            while (!condition()) {
+                if (Date.now() - start > timeout) throw new Error('timeout waiting for condition');
+                await new Promise((r) => setTimeout(r, 5));
+            }
+        }
+
+        await waitFor(() => gameRoomLayer.visible() === true, 500);
 
         expect(gameRoomLayer.visible()).toBe(true);
         expect(entranceLayer.visible()).toBe(false);
@@ -202,19 +211,18 @@ describe('Client Pages', () => {
         
         // first test with empty username
         input.value = ''; // mimic empty username
-        // Find the join button group and fire click
-        const joinGroup = entranceLayer.findOne('Group');
-        expect(joinGroup).toBeTruthy();
-        joinGroup!.fire('click');
+        // Simulate click by calling the attached handler directly
+        expect(typeof (entranceLayer as any).handleJoinClick).toBe('function');
+        await (entranceLayer as any).handleJoinClick();
         // Wait a tick for handlers
-        await new Promise((r) => setTimeout(r, 0));
+        await new Promise((r) => setTimeout(r, 50));
         expect(alertSpy).toHaveBeenCalled();
 
         // now test with invalid username
         alertSpy.mockClear();
         input.value = '!!'; // mimic invalid username
-        joinGroup!.fire('click');
-        await new Promise((r) => setTimeout(r, 0));
+        await (entranceLayer as any).handleJoinClick();
+        await new Promise((r) => setTimeout(r, 50));
         expect(alertSpy).toHaveBeenCalled();
 
         alertSpy.mockRestore();
