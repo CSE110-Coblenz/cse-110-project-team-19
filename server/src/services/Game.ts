@@ -1,5 +1,5 @@
 import { Player, GameState, Leaderboard, Problem } from '../../../shared/types/index.js';
-import { PREGAME_DURATION, HUNDRED_METER_DASH_DURATION, PRE_MINIGAME_DURATION, HUNDRED_METER_DASH_PROBLEM_COUNT, JAVELIN_POINTS_PER_ROUND } from '../constants.js';
+import { PREGAME_DURATION, HUNDRED_METER_DASH_DURATION, PRE_MINIGAME_DURATION, HUNDRED_METER_DASH_PROBLEM_COUNT, JAVELIN_DURATION, JAVELIN_ANIMATION_DURATION } from '../constants.js';
 import { Server } from 'socket.io';
 import { HundredMeterDash } from './games/HundredMeterDash.js';
 import { Javelin } from './games/Javelin.js';
@@ -14,10 +14,9 @@ export class Game {
     private io: Server;
     // 100m dash logic encapsulated in separate class
     private hundredMeterDash: HundredMeterDash = new HundredMeterDash();
-    // Javelin minigame instance and per-player timers/state
+    // Javelin minigame instance (global sprint timer, per-player problem indices)
     private javelin: Javelin = new Javelin();
-    private javelinTimers: Map<string, NodeJS.Timeout> = new Map();
-    private javelinTimeRemaining: Map<string, number> = new Map();
+    // Removed per-player timers; global sprint timer handled via startTimer when in MINIGAME
 
     constructor(gameId: number, io: Server) {
         this.gameId = gameId;
@@ -34,14 +33,22 @@ export class Game {
         return this.currentState;
     }
 
-    // get next game state
+    // get next game state (updated for Javelin animation phase)
     getNextGameState(curState: GameState): GameState {
-        let newState : GameState | null = null;
-        if (curState == "PREGAME") {newState = "100M_DASH";}
-        else if (curState == "100M_DASH") {newState = "BEFORE_MINIGAME";}
-        else if (curState == "BEFORE_MINIGAME") {newState = "MINIGAME";}
-        else if (curState == "MINIGAME") {newState = "POSTGAME";}
-        return newState!;
+        switch (curState) {
+            case 'PREGAME':
+                return '100M_DASH';
+            case '100M_DASH':
+                return 'BEFORE_MINIGAME';
+            case 'BEFORE_MINIGAME':
+                return 'MINIGAME';
+            case 'MINIGAME':
+                return 'JAVELIN_ANIMATION';
+            case 'JAVELIN_ANIMATION':
+                return 'POSTGAME';
+            default:
+                return 'POSTGAME';
+        }
     }
 
     // Add a new player to this game
@@ -105,110 +112,24 @@ export class Game {
         this.hundredMeterDash.prepare(this.players.keys());
     }
 
-    // Prepare javelin per-player problem lists
+    // Prepare javelin shared problem list & per-player indices
     prepareJavelin(): void {
         this.javelin.prepare(this.players.keys());
-        // clear any existing per-player timers/state
-        for (const t of this.javelinTimers.values()) {
-            clearInterval(t);
-        }
-        this.javelinTimers.clear();
-        this.javelinTimeRemaining.clear();
-    }
-
-    // Start javelin rounds for all active players
-    startJavelinForAll(): void {
-        for (const [username, player] of this.players.entries()) {
-            if (!player.active) continue;
-            this.startJavelinRoundForPlayer(username);
-        }
-    }
-
-    // Start a round timer and send problem to a single player
-    startJavelinRoundForPlayer(username: string): void {
-        if (!this.players.has(username)) return;
-        if (!this.javelin.isAlive(username)) return;
-
-        const problem = this.javelin.getProblemForPlayer(username);
-        if (!problem) {
-            // no more problems for this player
-            return;
-        }
-
-        const roundIdx = this.javelin.getRoundIndex(username);
-        const durFloat = this.javelin.getRoundDuration(roundIdx);
-        const duration = Math.ceil(durFloat);
-
-        // store remaining time
-        this.javelinTimeRemaining.set(username, duration);
-
-        // send the multiple-choice problem to the specific player socket
-        const gm = GameManager.getInstance();
-        const socketId = gm.getSocketIdForUsername(username);
-        if (!socketId) return;
-
-        this.io.to(socketId).emit('sendMultipleChoice', { problem });
-
-        // emit initial countdown tick to this player only
-        this.io.to(socketId).emit('countDownTick', { game_state: 'MINIGAME', time: duration });
-
-    // start per-player interval
-        const timer = setInterval(() => {
-            const rem = (this.javelinTimeRemaining.get(username) ?? 0) - 1;
-            this.javelinTimeRemaining.set(username, rem);
-            this.io.to(socketId).emit('countDownTick', { game_state: 'MINIGAME', time: rem });
-            if (rem <= 0) {
-                clearInterval(timer);
-                this.javelinTimers.delete(username);
-                this.javelinTimeRemaining.delete(username);
-                // timeout -> player falls (end)
-        // mark as dead via timeout
-        this.javelin.timeout(username);
-                // Broadcast updated leaderboard (no points awarded)
-                const lb = this.getLeaderboard();
-                this.io.to(`game-${this.gameId}`).emit('updateLeaderboard', { leaderboard: lb });
-                // If everyone done, transition game
-                if (this.javelin.allDone()) {
-                    this.transitionToState('POSTGAME');
-                    this.io.to(`game-${this.gameId}`).emit('transitionGame', { game_state: 'POSTGAME' });
-                }
-            }
-        }, 1000);
-
-        this.javelinTimers.set(username, timer);
     }
 
     // Handle a player's submit for the javelin multiple-choice question
     handleJavelinSubmit(username: string, choice: 'A' | 'B' | 'C' | 'D'): { correct: boolean; finished: boolean } {
+        // Ignore submissions outside sprint phase
+        if (this.currentState !== 'MINIGAME') {
+            return { correct: false, finished: true };
+        }
         const res = this.javelin.submitAnswer(username, choice);
-
-        // clear existing timer for player
-        const t = this.javelinTimers.get(username);
-        if (t) {
-            clearInterval(t);
-            this.javelinTimers.delete(username);
-            this.javelinTimeRemaining.delete(username);
-        }
-
         if (res.correct) {
-            // award points for surviving this round
-            this.addJavelinMeters(username, JAVELIN_POINTS_PER_ROUND);
+            // Award +1 per correct answer in sprint
+            this.addJavelinMeters(username, 1);
         }
-
-        // broadcast leaderboard update to room
+        // Broadcast leaderboard after every attempt
         this.io.to(`game-${this.gameId}`).emit('updateLeaderboard', { leaderboard: this.getLeaderboard() });
-
-        // If player finished successfully (ran out of problems) or marked dead, check for end
-        if (res.finished || !this.javelin.isAlive(username)) {
-            if (this.javelin.allDone()) {
-                this.transitionToState('POSTGAME');
-                this.io.to(`game-${this.gameId}`).emit('transitionGame', { game_state: 'POSTGAME' });
-            }
-            return res;
-        }
-
-        // otherwise start next round for this player
-        this.startJavelinRoundForPlayer(username);
         return res;
     }
 
@@ -285,10 +206,24 @@ export class Game {
                 this.timeRemaining = PRE_MINIGAME_DURATION;
                 break;
             case 'MINIGAME':
-                // MINIGAME will be handled by per-player javelin timers; prepare and start them
+                // Global sprint timer for Javelin
+                this.timeRemaining = JAVELIN_DURATION;
                 this.prepareJavelin();
-                this.startJavelinForAll();
-                return;
+                // Send first problem to each alive player privately
+                const gm = GameManager.getInstance();
+                for (const [username, player] of this.players.entries()) {
+                    if (!player.active) continue;
+                    const problem = this.javelin.getProblemForPlayer(username);
+                    if (!problem) continue;
+                    const socketId = gm.getSocketIdForUsername(username);
+                    if (socketId) {
+                        this.io.to(socketId).emit('sendMultipleChoice', { problem });
+                    }
+                }
+                break;
+            case 'JAVELIN_ANIMATION':
+                this.timeRemaining = JAVELIN_ANIMATION_DURATION;
+                break;
             default:
                 this.timeRemaining = 0;
         }
@@ -319,6 +254,7 @@ export class Game {
                 if (nextState === '100M_DASH') {
                     this.prepareHundredMeterDash();
                 }
+                // If entering animation phase, no new data needed; clients will switch UI
 
                 // Emit transition event to all players in this game room
                 this.io.to(`game-${this.gameId}`).emit('transitionGame', {
@@ -339,6 +275,11 @@ export class Game {
                 }
             }
         }, 1000);
+    }
+
+    // Expose current javelin problem for a player
+    getJavelinProblem(username: string) {
+        return this.javelin.getProblemForPlayer(username);
     }
 
     // Stop the game timer
