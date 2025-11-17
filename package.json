@@ -14,11 +14,12 @@
     "build": "npm run build --workspace=client && npm run build --workspace=server",
     "build:client": "npm run build --workspace=client",
     "build:server": "npm run build --workspace=server",
-    "test": "npm run test --workspace=server && npm run test --workspace=client", 
+    "test": "npm run test --workspace=server && npm run test --workspace=client",
     "test:client": "npm run test --workspace=client",
     "test:server": "npm run test --workspace=server"
   },
   "devDependencies": {
+    "canvas": "^3.2.0",
     "typescript": "^5.9.3",
     "vite": "^7.1.11",
     "vitest": "^4.0.6"

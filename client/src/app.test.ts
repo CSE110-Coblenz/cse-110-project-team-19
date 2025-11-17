@@ -24,61 +24,7 @@ if (typeof globalThis.document === 'undefined') {
         if (typeof (globalThis as any).alert === 'undefined') (globalThis as any).alert = () => undefined;
 }
 
-// Mock Konva to avoid needing the native `canvas` package in the test environment.
-vi.mock('konva', () => {
-    // Minimal mock implementations used by the pages under test
-    class Layer {
-        children: any[] = [];
-        private _visible = false;
-        constructor() {}
-        add(child: any) { this.children.push(child); }
-        findOne(selector: string) {
-            // return first child whose constructor name matches selector
-            return this.children.find((c) => (c && c._konvaType === selector)) || null;
-        }
-        find(selector: string) {
-            return this.children.filter((c) => (c && c._konvaType === selector));
-        }
-        visible(val?: boolean) { if (typeof val === 'boolean') { this._visible = val; return this; } return this._visible; }
-        draw() { /* no-op */ }
-        batchDraw() { /* no-op */ }
-        destroyChildren() { this.children = []; }
-    }
-
-    class Group {
-        children: any[] = [];
-        _konvaType = 'Group';
-        private handlers: Record<string, Function[]> = {};
-        private _listening: boolean = true;
-        add(child: any) { this.children.push(child); }
-        on(event: string, fn: Function) { (this.handlers[event] ||= []).push(fn); }
-        fire(event: string, ...args: any[]) { (this.handlers[event] || []).forEach((h) => h(...args)); }
-        destroyChildren() { this.children = []; }
-        listening(val?: boolean) { if (typeof val === 'boolean') { this._listening = val; return this; } return this._listening; }
-    }
-
-    class Text {
-        _konvaType = 'Text';
-        private _text = '';
-        constructor(opts?: any) { if (opts && opts.text) this._text = opts.text; }
-        text(val?: string) { if (typeof val === 'string') { this._text = val; return this; } return this._text; }
-    }
-
-    class Rect { _konvaType = 'Rect'; constructor(_opts?: any) {} }
-
-    const Image = {
-        fromURL(_url: string, cb: (img: any) => void) {
-            const img = {
-                position: () => {},
-                width: () => {},
-                height: () => {},
-            };
-            cb(img);
-        }
-    };
-
-    return { default: { Layer, Group, Text, Rect, Image } };
-});
+// Not worth it to keep mocking Konva, just import the real thing
 import { createEntrancePage } from './pages/EntrancePage.js';
 import { createGameRoom } from './pages/GameRoom.js';
 import { createHundredMeterDash } from './pages/HundredMeterDash.js';
