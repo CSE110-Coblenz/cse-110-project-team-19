@@ -60,28 +60,25 @@ pages.forEach((layer, pageName) => {
 
 // Function to switch between pages
 function showPage(pageName: PageName): void {
-    // Hide all layers
-    pages.forEach((layer, name) => {
+    // Hide all layers & any page-specific inputs
+    pages.forEach((layer) => {
         layer.visible(false);
-        // Hide entrance input when leaving entrance page
-        if (name === 'entrance') {
+        if ((layer as any).hideInput) {
             (layer as any).hideInput();
         }
     });
 
-    // Show the requested page
     const page = pages.get(pageName);
-    if (page) {
-        page.visible(true);
-        _currentPage = pageName;
-        // Show entrance input when entering entrance page
-        if (pageName === 'entrance') {
-            (page as any).showInput();
-        }
-        stage.draw();
-    } else {
+    if (!page) {
         console.error(`Page "${pageName}" not found`);
+        return;
     }
+    page.visible(true);
+    _currentPage = pageName;
+    if ((page as any).showInput) {
+        (page as any).showInput();
+    }
+    stage.draw();
 }
 
 // Register universal transition handler with SocketService
@@ -99,8 +96,12 @@ socketService.setTransitionHandler((gameState: GameState) => {
             showPage('gameRoom');
             break;
         case 'MINIGAME':
-            // TODO: Show minigame page
             showPage('javelin');
+            (javelinLayer as any).setPhase('MINIGAME');
+            break;
+        case 'JAVELIN_ANIMATION':
+            showPage('javelin');
+            (javelinLayer as any).setPhase('JAVELIN_ANIMATION');
             break;
         case 'POSTGAME':
             showPage('gameRoom');
@@ -113,8 +114,9 @@ socketService.setTransitionHandler((gameState: GameState) => {
 // Register universal leaderboard update handler with SocketService
 socketService.setLeaderboardHandler((payload) => {
     console.log('app.ts: Received leaderboard update', payload.leaderboard);
-    // Call GameRoom's public updateLeaderboard method
     (gameRoomLayer as any).updateLeaderboard(payload.leaderboard);
+    // Forward progress to dash layer for track movement
+    (dash100mLayer as any).updateProgress(payload.leaderboard);
 });
 
 // Register universal countdown tick handler with SocketService
@@ -128,7 +130,7 @@ socketService.setCountdownHandler((payload) => {
         (dash100mLayer as any).updateTimer(payload.time);
     }
 
-    if (payload.game_state === 'MINIGAME') {
+    if (payload.game_state === 'MINIGAME' || payload.game_state === 'JAVELIN_ANIMATION') {
         (javelinLayer as any).updateTimer(payload.time);
     }
 });
