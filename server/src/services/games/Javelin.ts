@@ -1,5 +1,5 @@
 import { MultipleChoiceProblem } from '../../../../shared/types/index.js';
-import { JAVELIN_PROBLEM_COUNT, JAVELIN_BASE_ROUND_DURATION, JAVELIN_ROUND_DECREASE_PER_ROUND, JAVELIN_MIN_ROUND_DURATION } from '../../constants.js';
+import { JAVELIN_PROBLEM_COUNT } from '../../constants.js';
 
 type ChoiceLabel = 'A' | 'B' | 'C' | 'D';
 
@@ -28,23 +28,33 @@ export class Javelin {
         }
     }
 
-    // Generate a list of multiple-choice division problems
+    // Generate a list of multiple-choice addition problems (two addends, 1–3 digits)
     private generateProblems(): InternalMCProblem[] {
         const out: InternalMCProblem[] = [];
         for (let i = 0; i < JAVELIN_PROBLEM_COUNT; i++) {
-            // 3-digit operands
-            const a = this.randInt(100, 999);
-            const b = this.randInt(100, 999);
-            const correctRaw = a / b;
-            const correct = this.roundTwo(correctRaw);
+            // Two addends in [1, 999]
+            const a = this.randInt(1, 999);
+            const b = this.randInt(1, 999);
+            const correct = a + b;
 
-            // create three distractors
+            // create three integer distractors near the correct value
             const distractors = new Set<number>();
+            const absOffsets = [3, 5, 7, 10, 15, 20, 25, 30, 50];
             while (distractors.size < 3) {
-                // perturb by up to ±10%
-                const perturb = 1 + (Math.random() * 0.2 - 0.1);
-                const val = this.roundTwo(correctRaw * perturb);
-                if (val !== correct) distractors.add(val);
+                // mix proportional and absolute offsets
+                const useProp = Math.random() < 0.5;
+                let candidate: number;
+                if (useProp) {
+                    const pct = 0.02 + Math.random() * 0.06; // 2%–8%
+                    const sign = Math.random() < 0.5 ? -1 : 1;
+                    candidate = Math.round(correct * (1 + sign * pct));
+                } else {
+                    const offset = absOffsets[Math.floor(Math.random() * absOffsets.length)];
+                    const sign = Math.random() < 0.5 ? -1 : 1;
+                    candidate = correct + sign * offset;
+                }
+                if (candidate < 1) continue;
+                if (candidate !== correct) distractors.add(candidate);
             }
 
             const choicesArr = [correct, ...Array.from(distractors)];
@@ -54,10 +64,10 @@ export class Javelin {
             // map to labels
             const labels: ChoiceLabel[] = ['A', 'B', 'C', 'D'];
             const choices: Record<ChoiceLabel, string> = {
-                A: choicesArr[0].toFixed(2),
-                B: choicesArr[1].toFixed(2),
-                C: choicesArr[2].toFixed(2),
-                D: choicesArr[3].toFixed(2)
+                A: String(choicesArr[0]),
+                B: String(choicesArr[1]),
+                C: String(choicesArr[2]),
+                D: String(choicesArr[3])
             };
 
             const correctLabel = (labels[choicesArr.indexOf(correct)] ?? 'A') as ChoiceLabel;
@@ -74,7 +84,7 @@ export class Javelin {
         if (idx >= this.problems.length) return null;
         const p = this.problems[idx];
         return {
-            type: 'DIVISION',
+            type: 'ADDITION',
             operand1: p.operand1,
             operand2: p.operand2,
             A: p.choices.A,
@@ -105,33 +115,9 @@ export class Javelin {
         return { correct: true, finished };
     }
 
-    // Timeout handler: player did not answer in time
-    timeout(username: string): void {
-        this.alive.set(username, false);
-    }
-
     // Whether a player is still active/alive
     isAlive(username: string): boolean {
         return this.alive.get(username) ?? false;
-    }
-
-    // Whether all players are done (no alive players remain)
-    allDone(): boolean {
-        for (const v of this.alive.values()) {
-            if (v) return false;
-        }
-        return true;
-    }
-
-    // Get current round index for player
-    getRoundIndex(username: string): number {
-        return this.index.get(username) ?? 0;
-    }
-
-    // Round duration (seconds) for a given round index
-    getRoundDuration(roundIndex: number): number {
-        const dur = JAVELIN_BASE_ROUND_DURATION - (roundIndex * JAVELIN_ROUND_DECREASE_PER_ROUND);
-        return Math.max(JAVELIN_MIN_ROUND_DURATION, dur);
     }
 
     // Helpers
@@ -139,9 +125,7 @@ export class Javelin {
         return Math.floor(Math.random() * (max - min + 1)) + min;
     }
 
-    private roundTwo(n: number): number {
-        return Math.round(n * 100) / 100;
-    }
+    // roundTwo no longer needed (we use integers for addition)
 
     private shuffle<T>(arr: T[]): void {
         for (let i = arr.length - 1; i > 0; i--) {

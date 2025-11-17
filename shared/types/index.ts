@@ -1,5 +1,5 @@
 // Game state type
-export type GameState = "PREGAME" | "100M_DASH" | "BEFORE_MINIGAME" | "MINIGAME" | "POSTGAME";
+export type GameState = "PREGAME" | "100M_DASH" | "BEFORE_MINIGAME" | "MINIGAME" | "JAVELIN_ANIMATION" | "POSTGAME";
 
 // Player interface
 export interface Player {
@@ -37,8 +37,7 @@ export interface UpdateLeaderboardPayload {
     leaderboard: Leaderboard;
 }
 
-// Problem types for minigames
-export type ProblemType = 'MULTIPLICATION' | 'DIVISION';
+export type ProblemType = 'MULTIPLICATION' | 'DIVISION' | 'ADDITION';
 
 export interface Problem {
     type: ProblemType;
@@ -46,9 +45,8 @@ export interface Problem {
     operand2: number;
 }
 
-// Multiple-choice problem for javelin (server will NOT include the correct label when sending to clients)
 export interface MultipleChoiceProblem {
-    type: 'DIVISION';
+    type: 'ADDITION' | 'DIVISION';
     operand1: number;
     operand2: number;
     A: string;

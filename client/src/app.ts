@@ -97,6 +97,11 @@ socketService.setTransitionHandler((gameState: GameState) => {
             break;
         case 'MINIGAME':
             showPage('javelin');
+            (javelinLayer as any).setPhase('MINIGAME');
+            break;
+        case 'JAVELIN_ANIMATION':
+            showPage('javelin');
+            (javelinLayer as any).setPhase('JAVELIN_ANIMATION');
             break;
         case 'POSTGAME':
             showPage('gameRoom');
@@ -125,7 +130,7 @@ socketService.setCountdownHandler((payload) => {
         (dash100mLayer as any).updateTimer(payload.time);
     }
 
-    if (payload.game_state === 'MINIGAME') {
+    if (payload.game_state === 'MINIGAME' || payload.game_state === 'JAVELIN_ANIMATION') {
         (javelinLayer as any).updateTimer(payload.time);
     }
 });

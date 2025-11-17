@@ -3,31 +3,22 @@
 export const PREGAME_DURATION = 15;
 
 // Duration of the pre-minigame countdown timer in seconds (for minigame pages)
-export const PRE_MINIGAME_DURATION = 15;
+export const PRE_MINIGAME_DURATION = 10;
 
 // Duration of the 100m dash minigame in seconds
 export const HUNDRED_METER_DASH_DURATION = 60;
 
-// Duration of the javelin minigame in seconds
-export const JAVELIN_MINIGAME_DURATION = 15;
-
-// Javelin minigame settings (per-player rounds)
 // Base time (seconds) allowed for the first round
-export const JAVELIN_BASE_ROUND_DURATION = 5;
-// How much the allowed time decreases per successful round (seconds)
-export const JAVELIN_ROUND_DECREASE_PER_ROUND = 0.5;
-// Minimum allowed time per round
-export const JAVELIN_MIN_ROUND_DURATION = 1.5;
-// Number of pre-generated problems per player
-export const JAVELIN_PROBLEM_COUNT = 20;
-// Points awarded (meters) per successful round
-export const JAVELIN_POINTS_PER_ROUND = 10;
+// Javelin minigame (addition sprint) constants
+export const JAVELIN_DURATION = 20; // total seconds for problem solving phase
+export const JAVELIN_PROBLEM_COUNT = 200; // upper bound of shared problems; players likely won't exhaust
+export const JAVELIN_ANIMATION_DURATION = 10; // seconds for post-phase animation
 
 // Maximum number of active players allowed per game room
 export const MAX_PLAYERS_PER_ROOM = 5;
 
 // Minimum seconds remaining on timer to allow new players to join
-export const JOINABLE_TIME_THRESHOLD = 5;
+export const JOINABLE_TIME_THRESHOLD = 2;
 
 // Problem generation settings for 100m Dash
 export const HUNDRED_METER_DASH_PROBLEM_COUNT = 10;

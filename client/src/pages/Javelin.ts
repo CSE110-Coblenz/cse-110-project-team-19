@@ -89,8 +89,8 @@ export function createJavelin(stage: Konva.Stage, onLeaveGame: () => void): Konv
     });
 
     const countdownDisplay = new Konva.Group({
-        x: stage.width() / 2 - 120,
-        y: 90,
+        x: 20,
+        y: 20,
     });
     countdownDisplay.add(countdownRect);
     countdownDisplay.add(countdownText);
@@ -98,12 +98,23 @@ export function createJavelin(stage: Konva.Stage, onLeaveGame: () => void): Konv
 
     // Local function to update the timer display
     let alive = true;
-    let currentProblem: MultipleChoiceProblem | null = null;
+    let isWaiting = false; // when player is done, replace timer with waiting text
+    let animationMode = false; // true during JAVELIN_ANIMATION phase
 
     function updateTimer(time: number): void {
+        if (animationMode) {
+            countdownText.text(`Animation: ${Math.max(0, time)}s`);
+            layer.draw();
+            return;
+        }
+        if (isWaiting) {
+            countdownText.text('Waiting for other players...');
+            layer.draw();
+            return;
+        }
         countdownText.text(`Time: ${Math.max(0, time)}s`);
         layer.draw();
-        // If timer hit zero and player is still alive and a problem was present -> fall
+        // If sprint timer hit zero and player is still alive -> fall (end of sprint)
         if (time <= 0 && alive) {
             handlePlayerFall();
         }
@@ -112,6 +123,20 @@ export function createJavelin(stage: Konva.Stage, onLeaveGame: () => void): Konv
     // Expose public method for app.ts to push timer updates
     (layer as any).updateTimer = (time: number) => {
         updateTimer(time);
+    };
+    (layer as any).setPhase = (phase: string) => {
+        animationMode = phase === 'JAVELIN_ANIMATION';
+        if (animationMode) {
+            // Hide problem UI during animation phase
+            Object.values(btns).forEach(b => { b.style.display = 'none'; b.disabled = true; });
+            problemText.text('Throw distance animation...');
+            feedbackText.text('');
+            // Keep arrow where it fell; future enhancement could animate based on score
+        } else if (phase === 'MINIGAME') {
+            // Reset for new sprint phase
+            resetArrow();
+        }
+        layer.draw();
     };
 
     // Leave Game button (positioned below the countdown)
@@ -229,7 +254,10 @@ export function createJavelin(stage: Konva.Stage, onLeaveGame: () => void): Konv
     function handlePlayerFall() {
         if (!alive) return;
         alive = false;
-        feedbackText.text('You fell!');
+        isWaiting = true;
+        // Replace timer with waiting message
+        countdownText.text('Waiting for other players...');
+        feedbackText.text('');
         // hide buttons
         Object.values(btns).forEach(b => { b.style.display = 'none'; b.disabled = true; });
         animateFall();
@@ -238,10 +266,13 @@ export function createJavelin(stage: Konva.Stage, onLeaveGame: () => void): Konv
 
     // ===== Socket handlers =====
     function handleNewMC(problem: MultipleChoiceProblem) {
-        // player receives a new MC problem
-        alive = true;
-        currentProblem = problem;
-        problemText.text(`${problem.operand1} ÷ ${problem.operand2} = ?`);
+    alive = true;
+    isWaiting = false;
+    animationMode = false;
+        const expr = problem.type === 'ADDITION'
+            ? `${problem.operand1} + ${problem.operand2} = ?`
+            : `${problem.operand1} ÷ ${problem.operand2} = ?`;
+        problemText.text(expr);
         feedbackText.text('');
         // populate buttons
         (['A','B','C','D'] as const).forEach((label) => {
@@ -256,8 +287,14 @@ export function createJavelin(stage: Konva.Stage, onLeaveGame: () => void): Konv
     }
 
     function handleMCResult(resp: SubmitMultipleChoiceResponse) {
+        if (animationMode) {
+            // Ignore results during animation phase
+            return;
+        }
         if (resp.finished) {
-            feedbackText.text('Finished! Waiting for others...');
+            isWaiting = true;
+            countdownText.text('Waiting for other players...');
+            feedbackText.text('');
             Object.values(btns).forEach(b => { b.style.display = 'none'; b.disabled = true; });
             layer.draw();
             return;

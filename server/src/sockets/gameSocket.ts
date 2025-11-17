@@ -178,6 +178,14 @@ export function setupGameSocket(io: Server): void {
 
                 // Send private response to player
                 socket.emit('submitMultipleChoiceResult', { correct: result.correct, finished: result.finished });
+
+                // If still alive & not finished, send next problem immediately
+                if (result.correct && !result.finished) {
+                    const next = game.getJavelinProblem(username);
+                    if (next) {
+                        socket.emit('sendMultipleChoice', { problem: next });
+                    }
+                }
             } catch (err) {
                 console.error('Error in submitMultipleChoice:', err);
             }
