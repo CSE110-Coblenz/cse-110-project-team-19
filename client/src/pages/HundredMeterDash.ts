@@ -228,8 +228,9 @@ export function createHundredMeterDash(stage: Konva.Stage, onLeaveGame: () => vo
         sorted.forEach((player, idx) => {
             const laneCenterY = trackTop + laneHeightDynamic / 2 + idx * laneHeightDynamic;
             const nameLabel = new Konva.Text({
-                x: trackLeft - 55,
+                x: trackLeft + 15,
                 y: laneCenterY - 8,
+                
                 text: player.username,
                 fontSize: 14,
                 fontStyle: player.username === localUsername() ? 'bold' : 'normal',
