@@ -1,3 +1,5 @@
+// @vitest-environment jsdom
+
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { createHundredMeterDash } from './pages/HundredMeterDash.ts';
 import Konva from 'konva';

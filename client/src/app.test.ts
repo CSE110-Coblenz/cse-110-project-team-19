@@ -6,8 +6,6 @@ import { createEntrancePage } from './pages/EntrancePage.js';
 import { createGameRoom } from './pages/GameRoom.js';
 import { createHundredMeterDash } from './pages/HundredMeterDash.js';
 import { createJavelin } from './pages/Javelin.js';
-import * as api from './services/api.js';
-import { socketService } from './services/socket.js';
 import Konva from 'konva';
 import { makeTimerMessage, isFinalGameState, getWinnerUsernames } from './utils/gameResults.ts';
 
@@ -148,6 +146,10 @@ describe('Client Pages', () => {
                 if (pageName === 'entrance' && (page as any).showInput) (page as any).showInput();
             }
         }
+        // start at entrance
+        showPage('entrance');
+        expect(entranceLayer.visible()).toBe(true);
+        expect(gameRoomLayer.visible()).toBe(false);
 
         // In a real app, onJoinGame would be called by EntrancePage and then
         // app-level code would call showPage('gameRoom'). Here we simply record
