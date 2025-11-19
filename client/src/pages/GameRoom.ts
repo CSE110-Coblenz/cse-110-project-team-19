@@ -6,6 +6,8 @@ import { Leaderboard, GameState } from '../../../shared/types/index.js';
 export function createGameRoom(stage: Konva.Stage, onLeaveGame: () => void): Konva.Layer {
     const layer = new Konva.Layer();
 
+    let currentGameState: GameState = 'PREGAME';
+
     // Countdown timer at the top center
     const timerText = new Konva.Text({
         x: 0,
@@ -40,6 +42,8 @@ export function createGameRoom(stage: Konva.Stage, onLeaveGame: () => void): Kon
     function updateTimer(gameState: GameState, time: number): void {
         let message = '';
 
+         currentGameState = gameState;
+
         if (gameState === 'PREGAME') {
             message = `Game starts in: ${time}s`;
         } else if (gameState === 'BEFORE_MINIGAME') {
@@ -51,6 +55,13 @@ export function createGameRoom(stage: Konva.Stage, onLeaveGame: () => void): Kon
         }
 
         timerText.text(message);
+
+        if (gameState === 'POSTGAME') {
+            timerbox.fill('#ffd700');
+        } else {
+            timerbox.fill('white');
+        }
+
         layer.draw();
     }
 
@@ -178,13 +189,20 @@ export function createGameRoom(stage: Konva.Stage, onLeaveGame: () => void): Kon
         // Clear existing leaderboard
         leaderboardGroup.destroyChildren();
 
+        const isFinalScreen = currentGameState === 'POSTGAME';
+
+        let maxTotalScore = 0;
+        if (leaderboard.length > 0) {
+            maxTotalScore = Math.max(...leaderboard.map((p) => p.total_score));
+        }
+
         // backboard
         const backboard = new Konva.Rect({
             x:0,
             y:0,
             height: 300,
             width: 330,
-            fill: "gold",
+            fill: isFinalScreen ? "#ffd700" : "gold",
             stroke: "black",
             strokeWidth: 2,
         });
@@ -205,13 +223,17 @@ export function createGameRoom(stage: Konva.Stage, onLeaveGame: () => void): Kon
         leaderboard.forEach((player, index) => {
             const yPos = 70 + (index * 30);
 
+            const isWinner =
+                isFinalScreen && leaderboard.length > 0 && player.total_score === maxTotalScore;
+
+
             // Player info text
             const playerText = new Konva.Text({
                 x: 10,
                 y: yPos,
                 text: `${index + 1}. ${player.username} - Total: ${player.total_score} (100m: ${player["100m_score"]}, Mini: ${player.minigame1_score}) ${player.active ? '' : '[INACTIVE]'}`,
                 fontSize: 16,
-                fill: player.active ? 'black' : 'red',
+                fill: isWinner ? 'darkred' : (player.active ? 'black' : 'red'),
             });
             leaderboardGroup.add(playerText);
         });
