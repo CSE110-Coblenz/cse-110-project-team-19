@@ -93,25 +93,25 @@ describe('Game / GameManager', () => {
         expect(game2).toBe(game1); // should be the same game instance
         expect(game1.getPlayerCount()).toBe(2);
 
-    // Disconnect first player (this only marks the player inactive)
-    gm.removePlayer(socketId1);
+        // Disconnect first player (this only marks the player inactive)
+        gm.removePlayer(socketId1);
 
-    // Now spy on cleanup. In the real server the socket disconnect handler
-    // calls `cleanupEmptyGames()` after the last player leaves; the unit
-    // test must simulate that by calling cleanup explicitly.
-    const gameCleanupSpy = vi.spyOn(gm, 'cleanupEmptyGames');
+        // Now spy on cleanup. In the real server the socket disconnect handler
+        // calls `cleanupEmptyGames()` after the last player leaves; the unit
+        // test must simulate that by calling cleanup explicitly.
+        const gameCleanupSpy = vi.spyOn(gm, 'cleanupEmptyGames');
 
-    // Disconnect the second player (this only marks the player inactive)
-    gm.removePlayer(socketId2);
+        // Disconnect the second player (this only marks the player inactive)
+        gm.removePlayer(socketId2);
 
-    // Simulate the socket handler invoking the cleanup step that would run
-    // in production when the last player disconnects.
-    gm.cleanupEmptyGames();
-    expect(gameCleanupSpy).toHaveBeenCalled();
+        // Simulate the socket handler invoking the cleanup step that would run
+        // in production when the last player disconnects.
+        gm.cleanupEmptyGames();
+        expect(gameCleanupSpy).toHaveBeenCalled();
 
-    // The game should be removed from GameManager's tracking
-    const foundGame = (gm as any).games.get(game1.getGameId());
-    expect(foundGame).toBeUndefined();
+        // The game should be removed from GameManager's tracking
+        const foundGame = (gm as any).games.get(game1.getGameId());
+        expect(foundGame).toBeUndefined();
 
     });
 

@@ -1,299 +1,45 @@
+// @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-// This whole DOM shim block is added to provide a minimal in-process DOM
-// in the Node test environment so that document / window / alert exist
-// and calls to document.createElement / getElementById do not throw.
-if (typeof globalThis.document === 'undefined') {
-    const _nodes: Record<string, any> = {};
-    const body: any = {
-        innerHTML: '',
-        style: {},
-        appendChild(el: any) {
-            if (el && el.id) _nodes[el.id] = el;
-        },
-    };
-
-    globalThis.document = {
-        body,
-        createElement(tag: string) {
-            // handlers is used to store callbacks registered via addEventListener.
-            const handlers: Record<string, Function[]> = {};
-
-            // el is a "fake element" object. It has tag / style / children,
-            // and we attach addEventListener / click helpers so that tests
-            // can drive the UI code without a real browser DOM.
-            const el: any = {
-                tag,
-                _id: '',
-                style: {},
-                children: [],
-                appendChild() {},
-                // Simulate DOM addEventListener
-                addEventListener(event: string, fn: Function) {
-                    (handlers[event] ||= []).push(fn);
-                },
-                // Simple removeEventListener (rarely used in these tests)
-                removeEventListener(event: string, fn: Function) {
-                    handlers[event] = (handlers[event] || []).filter((h) => h !== fn);
-                },
-                // When click() is called, fire the previously registered 'click' handlers
-                click() {
-                    (handlers['click'] || []).forEach((h) => h({ target: el }));
-                },
-            };
-
-            Object.defineProperty(el, 'id', {
-                get() {
-                    return this._id;
-                },
-                set(v: string) {
-                    this._id = v;
-                    if (v) _nodes[v] = this;
-                },
-                configurable: true,
-                enumerable: true,
-            });
-            return el;
-        },
-        getElementById(id: string) {
-            return _nodes[id] || null;
-        },
-    } as any;
-    // Provide window and alert shims in the test environment
-    if (typeof (globalThis as any).window === 'undefined') (globalThis as any).window = globalThis;
-    if (typeof (globalThis as any).alert === 'undefined') (globalThis as any).alert = () => undefined;
-}
-
-// The whole Konva vi.mock(...) block is added to provide minimal mock
-// implementations of Layer / Group / Text / Rect / etc, so that the
-// Konva-based pages can run without a real canvas environment.
-vi.mock('konva', () => {
-    // Minimal mock implementations used by the pages under test
-    class Layer {
-        children: any[] = [];
-        private _visible = false;
-        constructor() {}
-        add(child: any) {
-            this.children.push(child);
-        }
-        findOne(selector: string) {
-            // Return first child whose _konvaType matches selector
-            return this.children.find((c) => c && c._konvaType === selector) || null;
-        }
-        find(selector: string) {
-            return this.children.filter((c) => c && c._konvaType === selector);
-        }
-        visible(val?: boolean) {
-            if (typeof val === 'boolean') {
-                this._visible = val;
-                return this;
-            }
-            return this._visible;
-        }
-        draw() {
-            /* no-op */
-        }
-        batchDraw() {
-            /* no-op */
-        }
-        destroyChildren() {
-            this.children = [];
-        }
-    }
-
-    class Group {
-        children: any[] = [];
-        _konvaType = 'Group';
-        private handlers: Record<string, Function[]> = {};
-        private _listening: boolean = true;
-        add(child: any) {
-            this.children.push(child);
-        }
-        // on / fire are added so that calls like group.on('click', ...) can be
-        // triggered in tests via group.fire('click').
-        on(event: string, fn: Function) {
-            (this.handlers[event] ||= []).push(fn);
-        }
-        fire(event: string, ...args: any[]) {
-            (this.handlers[event] || []).forEach((h) => h(...args));
-        }
-        destroyChildren() {
-            this.children = [];
-        }
-        listening(val?: boolean) {
-            if (typeof val === 'boolean') {
-                this._listening = val;
-                return this;
-            }
-            return this._listening;
-        }
-    }
-
-    class Text {
-        _konvaType = 'Text';
-        private _text = '';
-        private _width = 100;
-        private _height = 30;
-        private _offsetX = 0;
-        private _offsetY = 0;
-        private _rotation = 0;
-        constructor(opts?: any) {
-            if (opts && typeof opts.text === 'string') this._text = opts.text;
-            if (opts && typeof opts.width === 'number') this._width = opts.width;
-            if (opts && typeof opts.height === 'number') this._height = opts.height;
-        }
-        text(val?: string) {
-            if (typeof val === 'string') {
-                this._text = val;
-                return this;
-            }
-            return this._text;
-        }
-        width(val?: number) {
-            if (typeof val === 'number') {
-                this._width = val;
-                return this;
-            }
-            return this._width;
-        }
-        height(val?: number) {
-            if (typeof val === 'number') {
-                this._height = val;
-                return this;
-            }
-            return this._height;
-        }
-        offsetX(val?: number) {
-            if (typeof val === 'number') {
-                this._offsetX = val;
-                return this;
-            }
-            return this._offsetX;
-        }
-        offsetY(val?: number) {
-            if (typeof val === 'number') {
-                this._offsetY = val;
-                return this;
-            }
-            return this._offsetY;
-        }
-        rotation(val?: number) {
-            if (typeof val === 'number') {
-                this._rotation = val;
-                return this;
-            }
-            return this._rotation;
-        }
-    }
-
-    class Rect {
-        _konvaType = 'Rect';
-        private _fill: string | null = null;
-        constructor(opts?: any) {
-            if (opts && typeof opts.fill === 'string') this._fill = opts.fill;
-        }
-        fill(val?: string) {
-            if (typeof val === 'string') {
-                this._fill = val;
-                return this;
-            }
-            return this._fill;
-        }
-    }
-
-    class Line {
-        _konvaType = 'Line';
-        constructor(_opts?: any) {}
-    }
-    class Circle {
-        _konvaType = 'Circle';
-        constructor(_opts?: any) {}
-    }
-    class Ellipse {
-        _konvaType = 'Ellipse';
-        constructor(_opts?: any) {}
-    }
-
-    class Tween {
-        constructor(_opts: any) {}
-        play() {
-            /* no-op */
-        }
-    }
-    const Easings = {
-        EaseIn: 'EaseIn',
-    };
-
-    const Image = {
-        fromURL(_url: string, cb: (img: any) => void) {
-            const img = {
-                position: () => {},
-                width: () => {},
-                height: () => {},
-                listening: (_val?: boolean) => {},
-            };
-            cb(img);
-        },
-    };
-
-    return {
-        default: {
-            Layer,
-            Group,
-            Text,
-            Rect,
-            Line,
-            Circle,
-            Ellipse,
-            Tween,
-            Easings,
-            Image,
-        },
-    };
-});
-
-// The imports below are your original ones, except the last line
-// which was added to import the new utils/gameResults.ts helpers
-// that are tested in the second describe block.
+// Not worth it to keep mocking Konva or DOM, just import the real thing
 import { createEntrancePage } from './pages/EntrancePage.js';
 import { createGameRoom } from './pages/GameRoom.js';
 import { createHundredMeterDash } from './pages/HundredMeterDash.js';
 import { createJavelin } from './pages/Javelin.js';
-import * as api from './services/api.js';
-import { socketService } from './services/socket.js';
+import Konva from 'konva';
 import { makeTimerMessage, isFinalGameState, getWinnerUsernames } from './utils/gameResults.ts';
 
 describe('Client Pages', () => {
     let stage: any;
 
-    function makeStageMock() {
+    function makeStage() {
         // Ensure a container exists in DOM for Konva usage
         let container = document.getElementById('konva-container') as HTMLDivElement | null;
         if (!container) {
             container = document.createElement('div');
             container.id = 'konva-container';
+            // set an explicit size so Konva can initialize canvas
+            container.style.width = '800px';
+            container.style.height = '600px';
             document.body.appendChild(container);
         }
 
-        // Provide a minimal fake stage with the methods pages expect
-        return {
-            width: () => 800,
-            height: () => 600,
-            container: () => container as HTMLDivElement,
-            add: vi.fn(),
-            draw: vi.fn(),
-        } as any;
+        // Create a real Konva Stage (requires `canvas` + jsdom present in test env)
+        const stage = new Konva.Stage({ container: 'konva-container', width: 800, height: 600 });
+        return stage as any;
     }
 
     beforeEach(() => {
         vi.restoreAllMocks();
         // Create fresh DOM container for each test
         document.body.innerHTML = '';
-        stage = makeStageMock();
+        stage = makeStage();
     });
 
     afterEach(() => {
         vi.restoreAllMocks();
+        // destroy Konva stage to clean up canvases
+        try { stage && stage.destroy && stage.destroy(); } catch { }
         document.body.innerHTML = '';
     });
 
@@ -316,8 +62,9 @@ describe('Client Pages', () => {
         const onLeaveGame = vi.fn();
         const layer = createGameRoom(stage, onLeaveGame);
         expect(layer).toBeDefined();
-        // createGameRoom calls stage.add(layer) internally
-        expect(stage.add).toHaveBeenCalledWith(layer);
+        // createGameRoom should have added the layer to the stage
+        const layers = stage.getLayers();
+        expect(layers).toContain(layer);
     });
 
     it('creates HundredMeterDash without errors', () => {
@@ -399,6 +146,10 @@ describe('Client Pages', () => {
                 if (pageName === 'entrance' && (page as any).showInput) (page as any).showInput();
             }
         }
+        // start at entrance
+        showPage('entrance');
+        expect(entranceLayer.visible()).toBe(true);
+        expect(gameRoomLayer.visible()).toBe(false);
 
         // In a real app, onJoinGame would be called by EntrancePage and then
         // app-level code would call showPage('gameRoom'). Here we simply record
@@ -412,10 +163,9 @@ describe('Client Pages', () => {
         expect(input).toBeTruthy();
         input.value = 'alice_123';
 
-        // Fire the join button click
-        const joinGroup = entranceLayer.findOne('Group');
-        expect(joinGroup).toBeTruthy();
-        joinGroup!.fire('click');
+        // Simulate click by calling the attached handler directly
+        expect(typeof (entranceLayer as any).handleJoinClick).toBe('function');
+        await (entranceLayer as any).handleJoinClick();
 
         // Wait for any async handlers (if the page logic is asynchronous)
         await new Promise((r) => setTimeout(r, 0));
