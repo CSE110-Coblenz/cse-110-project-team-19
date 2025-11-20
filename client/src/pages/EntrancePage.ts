@@ -55,7 +55,7 @@ export function createEntrancePage(stage: Konva.Stage, _onSuccess: () => void): 
     joinButton.add(buttonText);
 
     // Make button clickable
-    joinButton.on('click', async () => {
+    const handleJoinClick = async () => {
         const username = usernameInput.value.trim();
 
         if (!username) {
@@ -68,18 +68,17 @@ export function createEntrancePage(stage: Konva.Stage, _onSuccess: () => void): 
             alert('Username must be 3–16 chars: letters, numbers, underscore only');
             return;
         }
-         joinButton.listening(false);
+        joinButton.listening(false);
 
         try {
             // First, call the API to validate username
             const response = await joinGame(username);
 
-             if (response.status === 'success') {
+            if (response.status === 'success') {
                 console.log('API join successful, connecting to socket...');
 
                 // Hide username input
                 usernameInput.style.display = 'none';
-                 
 
                 // Connect to socket with username
                 // Transition will be handled by universal transition handler in app.ts
@@ -90,10 +89,12 @@ export function createEntrancePage(stage: Konva.Stage, _onSuccess: () => void): 
         } catch (error) {
             console.error('Error joining game:', error);
             alert('Failed to join game. Please try again.');
-        }finally {
-         joinButton.listening(true); 
+        } finally {
+            joinButton.listening(true);
         }
-    });
+    };
+
+    joinButton.on('click', handleJoinClick);
 
     // Add pointer cursor on hover
     joinButton.on('mouseenter', () => {
@@ -234,5 +235,7 @@ export function createEntrancePage(stage: Konva.Stage, _onSuccess: () => void): 
         }
     };
     layer.add(joinButton);
+    // Expose handler for tests to simulate click without relying on Konva events
+    (layer as any).handleJoinClick = handleJoinClick;
     return layer;
 }

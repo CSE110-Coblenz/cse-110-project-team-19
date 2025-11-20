@@ -1,5 +1,5 @@
 // Game state type
-export type GameState = "PREGAME" | "100M_DASH" | "BEFORE_MINIGAME" | "MINIGAME" | "POSTGAME";
+export type GameState = "PREGAME" | "100M_DASH" | "BEFORE_MINIGAME" | "MINIGAME" | "JAVELIN_ANIMATION" | "POSTGAME";
 
 // Player interface
 export interface Player {
@@ -35,4 +35,49 @@ export interface TransitionGamePayload {
 
 export interface UpdateLeaderboardPayload {
     leaderboard: Leaderboard;
+}
+
+export type ProblemType = 'MULTIPLICATION' | 'DIVISION' | 'ADDITION';
+
+export interface Problem {
+    type: ProblemType;
+    operand1: number;
+    operand2: number;
+}
+
+export interface MultipleChoiceProblem {
+    type: 'ADDITION' | 'DIVISION';
+    operand1: number;
+    operand2: number;
+    A: string;
+    B: string;
+    C: string;
+    D: string;
+}
+
+// Socket payloads for problem flow
+export interface NewProblemPayload {
+    problem: Problem;
+}
+
+export interface SendMultipleChoicePayload {
+    problem: MultipleChoiceProblem;
+}
+
+export interface SubmitProblemRequest {
+    answer: number;
+}
+
+export interface SubmitMultipleChoiceRequest {
+    choice: 'A' | 'B' | 'C' | 'D';
+}
+
+export interface SubmitMultipleChoiceResponse {
+    correct: boolean;
+    finished: boolean;
+}
+
+export interface SubmitProblemResponse {
+    correct: boolean;
+    finished: boolean;
 }

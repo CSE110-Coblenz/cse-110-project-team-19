@@ -1,6 +1,6 @@
 import { Server, Socket } from 'socket.io';
 import { GameManager } from '../services/GameManager.js';
-import { UpdateLeaderboardPayload, TransitionGamePayload, CountdownTickPayload } from '../../../shared/types/index.js';
+import { UpdateLeaderboardPayload, TransitionGamePayload, CountdownTickPayload, SubmitProblemRequest, SubmitProblemResponse, NewProblemPayload } from '../../../shared/types/index.js';
 
 const USERNAME_REGEX = /^[A-Za-z0-9_]{3,16}$/;
 export function setupGameSocket(io: Server): void {
@@ -103,6 +103,91 @@ export function setupGameSocket(io: Server): void {
                         gameManager.cleanupEmptyGames();
                     }
                 }
+            }
+        });
+    });
+
+    // Problem flow events
+    io.on('connection', (socket: Socket) => {
+        // Client requests to submit an answer for current problem
+        socket.on('submitProblem', (req: SubmitProblemRequest) => {
+            try {
+                const active = gameManager.getActiveUser(socket.id);
+                if (!active) return;
+                const game = gameManager.getGame(active.gameId);
+                if (!game) return;
+
+                const username = active.username;
+                const problem = game.getCurrentProblem(username);
+                if (!problem) {
+                    const doneResp: SubmitProblemResponse = { correct: false, finished: true };
+                    socket.emit('submitProblemResult', doneResp);
+                    return;
+                }
+
+                const correct = Number(req?.answer) === game.getCorrectAnswer(problem);
+
+                // Always send back the evaluation result
+                const result: SubmitProblemResponse = { correct, finished: false };
+                if (!correct) {
+                    // Incorrect: subtract 2 meters
+                    game.addDashMeters(username, -2);
+                    // Broadcast updated leaderboard after penalty
+                    const leaderboardPenalty = game.getLeaderboard();
+                    io.to(`game-${game.getGameId()}`).emit('updateLeaderboard', { leaderboard: leaderboardPenalty });
+                    socket.emit('submitProblemResult', result);
+                    return;
+                }
+
+                // Correct answer: advance progress, add 10 meters
+                const finished = game.advanceProblem(username);
+                game.addDashMeters(username, 10);
+
+                // Broadcast updated leaderboard to room
+                const leaderboard = game.getLeaderboard();
+                io.to(`game-${game.getGameId()}`).emit('updateLeaderboard', { leaderboard });
+
+                // Respond to submitter
+                result.finished = finished;
+                socket.emit('submitProblemResult', result);
+
+                // If finished, just wait for global timer; else send next problem to this client only
+                if (!finished) {
+                    const nextProblem = game.getCurrentProblem(username);
+                    if (nextProblem) {
+                        const payload: NewProblemPayload = { problem: nextProblem };
+                        socket.emit('newProblem', payload);
+                    }
+                }
+            } catch (err) {
+                console.error('Error in submitProblem:', err);
+            }
+        });
+
+        // Javelin multiple-choice submission (per-player)
+        socket.on('submitMultipleChoice', (req: any) => {
+            try {
+                const active = gameManager.getActiveUser(socket.id);
+                if (!active) return;
+                const game = gameManager.getGame(active.gameId);
+                if (!game) return;
+
+                const username = active.username;
+                const choice = req?.choice as 'A' | 'B' | 'C' | 'D';
+                const result = game.handleJavelinSubmit(username, choice);
+
+                // Send private response to player
+                socket.emit('submitMultipleChoiceResult', { correct: result.correct, finished: result.finished });
+
+                // If still alive & not finished, send next problem immediately
+                if (result.correct && !result.finished) {
+                    const next = game.getJavelinProblem(username);
+                    if (next) {
+                        socket.emit('sendMultipleChoice', { problem: next });
+                    }
+                }
+            } catch (err) {
+                console.error('Error in submitMultipleChoice:', err);
             }
         });
     });
