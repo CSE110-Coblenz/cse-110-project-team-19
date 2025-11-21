@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { HundredMeterDash } from './services/games/HundredMeterDash.js';
-import { HUNDRED_METER_DASH_PROBLEM_COUNT, PROBLEM_OPERAND_MIN, PROBLEM_OPERAND_MAX } from './constants.js';
+import { HUNDRED_METER_DASH_PROBLEM_COUNT} from './constants.js';
 import { Problem } from '../../shared/types/index.js';
 
 
