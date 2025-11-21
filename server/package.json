@@ -6,7 +6,7 @@
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
-    "test": "timeout 60 npx vitest run || exit 0"
+    "test": "npx vitest run"
   },
   "dependencies": {
     "cors": "^2.8.5",
