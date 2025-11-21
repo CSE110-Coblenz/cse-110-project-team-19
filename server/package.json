@@ -6,7 +6,7 @@
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
-    "test": "npx vitest run --no-file-parallelism"
+    "test": "npx vitest run"
   },
   "dependencies": {
     "cors": "^2.8.5",
