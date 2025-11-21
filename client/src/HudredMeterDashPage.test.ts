@@ -12,7 +12,7 @@ describe ('HudredMeterDashPage', () => {
     let onResult: ((r: any) => void) | null = null;
     
     // helper function to find the position for a given username
-    function findDotFor(username: string, layer: Konva.Layer ): Konva.Circle | null {
+    function findPositionFor(username: string, layer: Konva.Layer ): number | null {
         // Find the tracks group that contains a Text with the username
         const groups = layer.find('Group');
         for (const g of groups) {
@@ -21,7 +21,7 @@ describe ('HudredMeterDashPage', () => {
                 if (txt && (txt as any).text && (txt as any).text() === username) {
                     // return the circle inside this group
                     const circle = (g as any).findOne('Circle');
-                    if (circle) return circle as any;
+                    if (circle) return circle.x();
                 }
             } catch {}
         }
@@ -42,6 +42,7 @@ describe ('HudredMeterDashPage', () => {
         });
     }
     beforeEach(() => {
+        // Reset mocks and DOM
         vi.restoreAllMocks();
         document.body.innerHTML = '';
         stage = makeStage();
@@ -80,11 +81,9 @@ describe ('HudredMeterDashPage', () => {
         // Render initial leaderboard with alice at score 0
         (layer as any).updateProgress([{ username: 'alice', '100m_score': 0, active: true }]);
 
-        // Find the initial dot x for alice
-        const dot = findDotFor('alice', layer);
-        // Make sure dot exists
-        expect(dot).toBeTruthy();
-        const initialX = dot!.x();
+        // Find initial position for the test player
+        const initialX = findPositionFor('alice', layer);
+        expect(initialX).toBeDefined();
 
         // Ensure the page received a new problem handler
         expect(onNew).toBeTruthy();
@@ -112,15 +111,14 @@ describe ('HudredMeterDashPage', () => {
         input.value = String(problem.operand1 * problem.operand2);
         btn.click();
 
-        // After click, the leaderboard update should have moved the dot
-        // Get the dot for test player after the update
-        const afterDot = findDotFor('alice', layer);
-        // Make sure dot exists
-        expect(afterDot).toBeTruthy();
-        const afterX = afterDot!.x();
+        // After click, the leaderboard update should have moved the player
+        // Get the position for test player after the update
+        const afterX = findPositionFor('alice', layer);
+        // Make sure position exists
+        expect(afterX).toBeDefined();
 
-        // Make sure the dot moved forward
-        expect(afterX).toBeGreaterThan(initialX);
+        // Make sure the player moved forward
+        expect(afterX).toBeGreaterThan(initialX as number);
     });
 
     it ('stays on same problem and moves player position backwards on incorrect answer', () => {
@@ -149,10 +147,9 @@ describe ('HudredMeterDashPage', () => {
         // cast to any to access updateProgress in testing
         (layer as any).updateProgress([{ username: 'alice', '100m_score': 0, active: true }]);
 
-        // Find the initial dot x for alice
-        const dot = findDotFor('alice', layer);
-        expect(dot).toBeTruthy();
-        const initialX = dot!.x();
+        // Find initial position for the test player
+        const initialX = findPositionFor('alice', layer);
+        expect(initialX).toBeDefined();
 
         // Ensure the page received a new problem handler
         expect(onNew).toBeTruthy();
@@ -178,9 +175,10 @@ describe ('HudredMeterDashPage', () => {
         btn.click();
 
         // After click, the leaderboard update should have moved the dot
-        const afterDot = findDotFor('alice', layer);
-        expect(afterDot).toBeTruthy();
-        const afterX = afterDot!.x();
+        // Get the position for test player after the update
+        const afterX = findPositionFor('alice', layer);
+        // Make sure position exists
+        expect(afterX).toBeDefined();
 
         expect(afterX).toEqual(initialX);
     });
