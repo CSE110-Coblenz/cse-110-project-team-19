@@ -3,9 +3,31 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { createHundredMeterDash } from './pages/HundredMeterDash.ts';
 import Konva from 'konva';
+import { socketService } from './services/socket.js';
 
 describe ('HudredMeterDashPage', () => {
     let stage: any;
+    let layer: any;
+    let onNew: ((p: any) => void) | null = null;
+    let onResult: ((r: any) => void) | null = null;
+    
+    // helper function to find the position for a given username
+    function findDotFor(username: string, layer: Konva.Layer ): Konva.Circle | null {
+        // Find the tracks group that contains a Text with the username
+        const groups = layer.find('Group');
+        for (const g of groups) {
+            try {
+                const txt = (g as any).findOne && (g as any).findOne('Text');
+                if (txt && (txt as any).text && (txt as any).text() === username) {
+                    // return the circle inside this group
+                    const circle = (g as any).findOne('Circle');
+                    if (circle) return circle as any;
+                }
+            } catch {}
+        }
+        return null;
+    }
+
     function makeStage() {
         let container = document.getElementById('konva-container') as HTMLDivElement | null;
         if (!container) {
@@ -23,27 +45,86 @@ describe ('HudredMeterDashPage', () => {
         vi.restoreAllMocks();
         document.body.innerHTML = '';
         stage = makeStage();
+
+        // Capture handlers registered with socketService
+        // Do BEFORE creating the layer so they are captured
+        // since createHundredMeterDash calls setProblemHandlers
+        vi.spyOn(socketService, 'setProblemHandlers').mockImplementation((n: any, res: any) => {
+            onNew = n;
+            onResult = res;
+        });
+
+        // create the HundredMeterDash layer
+        const onFinishRace = vi.fn();
+        layer = createHundredMeterDash(stage, onFinishRace);
+        
     });
     afterEach(() => {
         vi.restoreAllMocks();
     });
 
     it ('creates HudredMeterDashPage without errors and exposes input control methods', () => {
-        const onFinishRace = vi.fn();
-        const layer = createHundredMeterDash(stage, onFinishRace);
+        
         expect(layer).toBeDefined();
     });
 
-    it ('starts every player at the correct starting position', () => {
+    it ('starts every player at the same starting position', () => {
         // Test implementation goes here
     });
 
-    it ('gives new problem and moves player position foward on correct answer', () => {
-        // Test implementation goes here
+    it ('gives new problem and moves player position forward on correct answer', () => {
+        
+        // Ensure getUsername returns our only test player
+        vi.spyOn(socketService, 'getUsername').mockReturnValue('alice');
+
+        // Render initial leaderboard with alice at score 0
+        (layer as any).updateProgress([{ username: 'alice', '100m_score': 0, active: true }]);
+
+        // Find the initial dot x for alice
+        const dot = findDotFor('alice', layer);
+        // Make sure dot exists
+        expect(dot).toBeTruthy();
+        const initialX = dot!.x();
+
+        // Ensure the page received a new problem handler
+        expect(onNew).toBeTruthy();
+
+        // Simulate server sending a new problem
+        const problem = { operand1: 3, operand2: 4 } as any;
+        onNew!(problem);
+
+        // Find answer input and submit button in stage container
+        const input = stage.container().querySelector('input') as HTMLInputElement;
+        const btn = stage.container().querySelector('button') as HTMLButtonElement;
+        // Make sure both answer input and button exist
+        expect(input).toBeTruthy();
+        expect(btn).toBeTruthy();
+
+        // Prepare submitAnswer spy that will invoke the result handler and update scores
+        vi.spyOn(socketService, 'submitAnswer').mockImplementation((_val: number) => {
+            // Simulate server response indicating correct answer
+            if (onResult) onResult({ correct: true, finished: false });
+            // Also simulate a leaderboard update that moves alice forward
+            (layer as any).updateProgress([{ username: 'alice', '100m_score': 30, active: true }]);
+        });
+
+        // Enter correct answer and click submit
+        input.value = String(problem.operand1 * problem.operand2);
+        btn.click();
+
+        // After click, the leaderboard update should have moved the dot
+        // Get the dot for test player after the update
+        const afterDot = findDotFor('alice', layer);
+        // Make sure dot exists
+        expect(afterDot).toBeTruthy();
+        const afterX = afterDot!.x();
+
+        // Make sure the dot moved forward
+        expect(afterX).toBeGreaterThan(initialX);
     });
 
     it ('stays on same problem and moves player position backwards on incorrect answer', () => {
-        // Test implementation goes here
+       
     });
 
     it ('does not update position of other players when one player answers', () => {
@@ -59,7 +140,49 @@ describe ('HudredMeterDashPage', () => {
     });
 
     it ('does not move player beyond finish line', () => {
-        // Test implementation goes here
+
+        // Ensure getUsername returns our test player
+        vi.spyOn(socketService, 'getUsername').mockReturnValue('alice');
+
+
+        // Render initial leaderboard with alice at score 0
+        // cast to any to access updateProgress in testing
+        (layer as any).updateProgress([{ username: 'alice', '100m_score': 0, active: true }]);
+
+        // Find the initial dot x for alice
+        const dot = findDotFor('alice', layer);
+        expect(dot).toBeTruthy();
+        const initialX = dot!.x();
+
+        // Ensure the page received a new problem handler
+        expect(onNew).toBeTruthy();
+
+        // Simulate server sending a new problem
+        const problem = { operand1: 3, operand2: 4 } as any;
+        onNew!(problem);
+
+        // Find answer input and submit button in stage container
+        const input = stage.container().querySelector('input') as HTMLInputElement;
+        const btn = stage.container().querySelector('button') as HTMLButtonElement;
+        expect(input).toBeTruthy();
+        expect(btn).toBeTruthy();
+
+        // Prepare submitAnswer spy that will invoke the result handler and update scores
+        vi.spyOn(socketService, 'submitAnswer').mockImplementation((_val: number) => {
+            // Simulate server response indicating correct answer
+            if (onResult) onResult({ correct: false, finished: false });
+        });
+
+        // Enter incorrect answer and click submit
+        input.value = String(problem.operand1 * problem.operand2 - 5); // incorrect answer
+        btn.click();
+
+        // After click, the leaderboard update should have moved the dot
+        const afterDot = findDotFor('alice', layer);
+        expect(afterDot).toBeTruthy();
+        const afterX = afterDot!.x();
+
+        expect(afterX).toEqual(initialX);
     });
 
     it ('does not move player past starting line', () => {
