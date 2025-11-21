@@ -106,7 +106,6 @@ describe ('HudredMeterDashPage', () => {
         // Test implementation goes here
     });
 
-    // TODO: Test new problem given
     it ('gives new problem and moves player position forward on correct answer', () => {
         
         // Ensure getUsername returns our only test player
@@ -167,7 +166,6 @@ describe ('HudredMeterDashPage', () => {
 
     });
 
-    // TODO: Test problem unchanged
     it ('stays on same problem and moves player position backwards on incorrect answer', () => {
         // Ensure getUsername returns our only test player
         vi.spyOn(socketService, 'getUsername').mockReturnValue('alice');
