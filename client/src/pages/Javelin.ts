@@ -2,6 +2,7 @@
 // NOTE: this will soon be split into MVC structure
 import Konva from 'konva';
 import { socketService } from '../services/socket.js';
+import JavelinImageSrc from "../../../shared/JavelinIcon.png";
 import { MultipleChoiceProblem, SubmitMultipleChoiceResponse } from '../../../shared/types/index.js';
 
 export function createJavelin(stage: Konva.Stage, onLeaveGame: () => void): Konva.Layer {
@@ -41,6 +42,14 @@ export function createJavelin(stage: Konva.Stage, onLeaveGame: () => void): Konv
         fill: '#ED8272',
         stroke: 'white',
         strokeWidth: 4
+    });
+    Konva.Image.fromURL(JavelinImageSrc, (image) => {
+            // size it to the stage so it won’t overflow
+            image.position({ x: 50, y: stage.height() - 400 });
+            image.width(300);
+            image.height(400);
+            JavelinBackground.add(image);
+            layer.batchDraw(); // redraw when image finishes loading
     });
 
     JavelinBackground.add(grass);
@@ -115,9 +124,9 @@ export function createJavelin(stage: Konva.Stage, onLeaveGame: () => void): Konv
         countdownText.text(`Time: ${Math.max(0, time)}s`);
         layer.draw();
         // If sprint timer hit zero and player is still alive -> fall (end of sprint)
-        if (time <= 0 && alive) {
-            handlePlayerFall();
-        }
+        //if (time <= 0 && alive) {
+            //handlePlayerFall();
+        //}
     }
 
     // Expose public method for app.ts to push timer updates
@@ -131,6 +140,8 @@ export function createJavelin(stage: Konva.Stage, onLeaveGame: () => void): Konv
             Object.values(btns).forEach(b => { b.style.display = 'none'; b.disabled = true; });
             problemText.text('Throw distance animation...');
             feedbackText.text('');
+            let exampleRatio = 0.7;
+            animateThrow(exampleRatio);
             // Keep arrow where it fell; future enhancement could animate based on score
         } else if (phase === 'MINIGAME') {
             // Reset for new sprint phase
@@ -224,22 +235,76 @@ export function createJavelin(stage: Konva.Stage, onLeaveGame: () => void): Konv
             socketService.submitMultipleChoice(label as 'A' | 'B' | 'C' | 'D');
         });
     });
-
+    /** 
     // ===== Javelin arrow (local only) =====
-    const arrowGroup = new Konva.Group({ x: stage.width() / 2 - 60, y: 220 });
-    const shaft = new Konva.Rect({ x: 0, y: 0, width: 120, height: 6, fill: 'brown' });
-    const head = new Konva.Line({ points: [120, 3, 140, -7, 140, 13], closed: true, fill: 'gray', stroke: 'black' });
+    const arrowGroup = new Konva.Group({ 
+        x: stage.width()/2, 
+        y: stage.height() - 100,
+    });
+    let off_rot = -stage.width()/2;
+    const shaft = new Konva.Rect({ 
+        x: off_rot + 200, 
+        y: -300, 
+        width: 3, 
+        height: 300, 
+        fill: 'brown'
+    });
+    shaft.rotate(45);
     arrowGroup.add(shaft);
-    arrowGroup.add(head);
     layer.add(arrowGroup);
 
-    const groundY = 460;
+    const groundY = stage.height();
 
     function resetArrow() {
-        arrowGroup.y(220);
+        arrowGroup.y(stage.height() - 200);
         arrowGroup.rotation(0);
         layer.batchDraw();
     }
+    */
+
+    // ===== Javelin arrow (local only) =====
+
+    // a bit above the bottom so the ground is visible
+    const groundY = stage.height() - 40;
+
+    // starting point near the thrower’s hand (tweak these if needed)
+    const throwStartX = 3*stage.width()/4 + 100;                 // move right/left to line up with sprite
+    const throwStartY = stage.height()/8; // move up/down to sit in the hand
+    const pivotX = stage.width();                 // move right/left to line up with sprite
+    const pivotY = 3*stage.height()/ 4; // move up/down to sit in the hand
+
+    // Group pivot = bottom of the spear
+    const arrowGroup = new Konva.Group({
+        x: pivotX,
+        y: pivotY,
+        offsetX:1,
+        offsetY:throwStartY,
+    });
+
+    // spear geometry
+    const shaftLength = 300;
+
+    // Shaft: goes UP from the pivot
+    const shaft = new Konva.Rect({
+        x: -throwStartX,                   // center on x = 0
+        y: -throwStartY,         // top of shaft
+        offsetX: 3,
+        offsetY: 150,
+        width: 6,
+        height: shaftLength,     // down to y = 0 (pivot)
+        fill: 'brown',
+        rotation: 45
+    });
+    arrowGroup.add(shaft);
+    layer.add(arrowGroup);
+
+    function resetArrow() {
+        arrowGroup.position({ x: pivotX, y: pivotY });
+        arrowGroup.rotation(0);                       // straight up
+        arrowGroup.scale({ x: 1, y: 1 });            // full size
+        layer.batchDraw();
+    }
+
 
     function animateFall() {
         const tween = new Konva.Tween({
@@ -250,6 +315,42 @@ export function createJavelin(stage: Konva.Stage, onLeaveGame: () => void): Konv
         });
         tween.play();
     }
+
+    function animateThrow(ratio: number) {
+        resetArrow();
+        const angularSpeed = 180;                // deg/sec
+        const maxRotation = 90;                    // STOP at +135°
+        const startAngle = arrowGroup.rotation();   // usually 0°
+
+        const startScale = 1;
+        const minScale = 0.4;                       // smallest size at r = 1
+        const finalScale = 1 - ratio * (1 - minScale);
+
+        const anim = new Konva.Animation((frame) => {
+            if (!frame) return;
+
+            const angleDiff = (frame.timeDiff * angularSpeed) / 10000;
+            const newAngle = arrowGroup.rotation() + angleDiff;
+
+            if (newAngle >= startAngle + maxRotation) {
+                arrowGroup.rotation(startAngle + maxRotation);
+                anim.stop();
+                return;
+            }
+
+            arrowGroup.rotation(newAngle);
+
+            const progress = (newAngle - startAngle) / maxRotation;
+
+            const currentScale = startScale + (finalScale - startScale) * progress;
+            arrowGroup.scale({ x: currentScale, y: currentScale });
+            //mountgroup.scale({ x: currentScale, y: currentScale });
+
+        }, layer);
+
+        anim.start();
+    }
+    
 
     function handlePlayerFall() {
         if (!alive) return;
