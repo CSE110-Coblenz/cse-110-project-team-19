@@ -28,6 +28,12 @@ export class Javelin {
         }
     }
 
+    // Public: reset a single user's progress/alive state (used when a player rejoins)
+    resetUser(username: string): void {
+        this.index.set(username, 0);
+        this.alive.set(username, true);
+    }
+
     // Generate a list of multiple-choice addition problems (two addends, 1–3 digits)
     private generateProblems(): InternalMCProblem[] {
         const out: InternalMCProblem[] = [];
