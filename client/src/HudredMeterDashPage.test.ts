@@ -187,6 +187,11 @@ describe ('HudredMeterDashPage', () => {
         const problem = { operand1: 3, operand2: 4 } as any;
         onNew!(problem);
 
+        // Ensure problem is displayed 
+        let problemText = findProblemText(layer);
+        expect(problemText).toBe(`${problem.operand1} × ${problem.operand2} = ?`);
+
+
         // Find answer input and submit button in stage container
         const input = stage.container().querySelector('input') as HTMLInputElement;
         const btn = stage.container().querySelector('button') as HTMLButtonElement;
@@ -211,6 +216,10 @@ describe ('HudredMeterDashPage', () => {
 
         // Make sure the player moved backward
         expect(afterX).toBeLessThan(initialX as number);
+
+        // Ensure the problem is unchanged
+        problemText = findProblemText(layer);
+        expect(problemText).toBe(`${problem.operand1} × ${problem.operand2} = ?`);
     });
 
     it ('lets player see live progress of other players and does not update position of other players when one player answers', () => {
