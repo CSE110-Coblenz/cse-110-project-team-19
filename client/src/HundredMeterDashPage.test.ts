@@ -103,7 +103,7 @@ describe ('HudredMeterDashPage', () => {
 
     it ('starts every player at the same starting position', () => {
         // Ensure getUsername returns our test player (alice)
-        // There are multiple players in the game but we only control alice in this test
+        // There are multiple players in the game but we only view the layer from alice's perspective in this test
         vi.spyOn(socketService, 'getUsername').mockReturnValue('alice');
         // Render initial leaderboard with multiple players at score 0
         (layer as any).updateProgress([
@@ -115,13 +115,16 @@ describe ('HudredMeterDashPage', () => {
         const aliceX = findPositionFor('alice', layer);
         const bobX = findPositionFor('bob', layer);
         const carolX = findPositionFor('carol', layer);
+
+        // Ensure all positions are defined and not null
         expect(aliceX).toBeDefined();
         expect(aliceX).not.toBeNull();
         expect(bobX).toBeDefined();
         expect(bobX).not.toBeNull();
         expect(carolX).toBeDefined();
         expect(carolX).not.toBeNull();
-        // All should be at the same starting position
+
+        // All players should be at the same starting position
         expect(aliceX).toEqual(bobX);
         expect(aliceX).toEqual(carolX);
     });
@@ -241,7 +244,46 @@ describe ('HudredMeterDashPage', () => {
     });
 
     it ('lets player see live progress of other players and does not update position of other players when one player answers', () => {
-        // Test implementation goes here
+        // Ensure getUsername returns our test player (alice)
+        // There are multiple players in the game but we only view the layer from alice's perspective in this test
+        vi.spyOn(socketService, 'getUsername').mockReturnValue('alice');
+        // Render initial leaderboard with multiple players at score 0
+        (layer as any).updateProgress([
+            { username: 'alice', '100m_score': 0, active: true },
+            { username: 'bob', '100m_score': 0, active: true },
+        ]);
+        // Find initial position for each player
+        const aliceX = findPositionFor('alice', layer);
+        const bobX = findPositionFor('bob', layer);
+        // Ensure all positions are defined and not null
+        expect(aliceX).toBeDefined();
+        expect(aliceX).not.toBeNull();
+        expect(bobX).toBeDefined();
+        expect(bobX).not.toBeNull();
+
+        // As of now, positions of both players should be the same
+        expect(aliceX).toEqual(bobX);
+
+        // Simulate bob answering a question correctly and moving forward
+        (layer as any).updateProgress([
+            { username: 'alice', '100m_score': 0, active: true },
+            { username: 'bob', '100m_score': 10, active: true },
+        ]);
+
+        // Find updated position for each player
+        const aliceXAfter = findPositionFor('alice', layer);
+        const bobXAfter = findPositionFor('bob', layer);
+        // Ensure new positions are defined and not null
+        expect(aliceXAfter).toBeDefined();
+        expect(aliceXAfter).not.toBeNull();
+        expect(bobXAfter).toBeDefined();
+        expect(bobXAfter).not.toBeNull();
+
+        // Alice's position should NOT have changed
+        expect(aliceXAfter).toEqual(aliceX);
+        // Bob's position should have moved forward
+        expect(bobXAfter).toBeGreaterThan(bobX as number);
+
     });
 
     it ('disables answer input and submit button when player reaches finish line', () => {
