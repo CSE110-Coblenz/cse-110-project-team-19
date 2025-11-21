@@ -19,15 +19,45 @@ describe('Game / GameManager', () => {
 
 	afterEach(() => {
 		vi.restoreAllMocks();
+        // Clean up any games with active timers
+        const gm = (GameManager as any).instance;
+        if (gm) {
+            // Get all games and stop their timers
+            const games = (gm as any).games;
+            if (games) {
+                games.forEach((game: Game) => {
+                    // Stop any running timers in the game
+                    game.stopTimer();
+                    // Clear any intervals/timeouts
+                    if ((game as any).timerInterval) {
+                        clearInterval((game as any).timerInterval);
+                    }
+                });
+            }
+        }
 		// ensure singleton removed after test
 		(GameManager as unknown as any).instance = undefined;
 	});
 
     afterAll(() => {
-        // ensure singleton removed after all tests
+        // Final cleanup
+        const gm = (GameManager as any).instance;
+        if (gm) {
+            const games = (gm as any).games;
+            if (games) {
+                games.forEach((game: Game) => {
+                    game.stopTimer();
+                    if ((game as any).timerInterval) {
+                        clearInterval((game as any).timerInterval);
+                    }
+                });
+                games.clear();
+            }
+        }
         (GameManager as unknown as any).instance = undefined;
-        // close server to cleanup any open handles
-        try { io.close(); } catch {}
+        vi.clearAllTimers(); // Clear any remaining vi timers
+            // ensure singleton removed after all tests
+            (GameManager as unknown as any).instance = undefined;
     });
 
 	it('calls addPlayer on the game and increments player count when a player connects', () => {
