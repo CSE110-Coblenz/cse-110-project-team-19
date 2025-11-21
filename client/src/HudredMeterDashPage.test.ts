@@ -62,6 +62,8 @@ describe ('HudredMeterDashPage', () => {
     });
     afterEach(() => {
         vi.restoreAllMocks();
+        // Disconnect any real socket client opened during tests
+        try { socketService.disconnect(); } catch {}
     });
 
     it ('creates HudredMeterDashPage without errors and exposes input control methods', () => {

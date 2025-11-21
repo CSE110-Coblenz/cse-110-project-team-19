@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach, afterAll } from 'vitest';
 import { Game } from './services/Game.js';
 import { GameManager } from './services/GameManager.js';
 import { Server } from 'socket.io';
@@ -22,6 +22,13 @@ describe('Game / GameManager', () => {
 		// ensure singleton removed after test
 		(GameManager as unknown as any).instance = undefined;
 	});
+
+    afterAll(() => {
+        // ensure singleton removed after all tests
+        (GameManager as unknown as any).instance = undefined;
+        // close server to cleanup any open handles
+        try { io.close(); } catch {}
+    });
 
 	it('calls addPlayer on the game and increments player count when a player connects', () => {
 		const addPlayerSpy = vi.spyOn(Game.prototype, 'addPlayer');
