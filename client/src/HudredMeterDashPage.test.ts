@@ -56,8 +56,8 @@ describe ('HudredMeterDashPage', () => {
         });
 
         // create the HundredMeterDash layer
-        const onFinishRace = vi.fn();
-        layer = createHundredMeterDash(stage, onFinishRace);
+        const onLeaveGame = vi.fn();
+        layer = createHundredMeterDash(stage, onLeaveGame);
         
     });
     afterEach(() => {
@@ -135,15 +135,46 @@ describe ('HudredMeterDashPage', () => {
         // Test implementation goes here
     });
 
-    it ('calls onFinishRace callback when player reaches finish line', () => {
-        // Test implementation goes here
-    });
-
-    it ('does not move player beyond finish line', () => {
-
+    it ('disables answer input and submit button when player reaches finish line', () => {
         // Ensure getUsername returns our test player
         vi.spyOn(socketService, 'getUsername').mockReturnValue('alice');
 
+        // Render initial leaderboard with alice at score 90
+        // cast to any to access updateProgress in testing
+        (layer as any).updateProgress([{ username: 'alice', '100m_score': 90, active: true }]);
+
+        // Simulate server sending a new problem
+        const problem = { operand1: 3, operand2: 4 } as any;
+        onNew!(problem);
+
+        // Find answer input and submit button in stage container
+        // both should exist and be displayed
+        let input = stage.container().querySelector('input') as HTMLInputElement;
+        let btn = stage.container().querySelector('button') as HTMLButtonElement;
+        expect(input).toBeTruthy();
+        expect(btn).toBeTruthy();
+        expect(input.style.display).not.toBe('none');
+        expect(btn.style.display).not.toBe('none');
+
+        // Prepare submitAnswer spy that will invoke the result handler and update scores
+        vi.spyOn(socketService, 'submitAnswer').mockImplementation((_val: number) => {
+            // Simulate server response indicating correct answer and finishing the race
+            if (onResult) onResult({ correct: true, finished: true });
+        });
+
+        // Enter correct answer and click submit
+        input.value = String(problem.operand1 * problem.operand2);
+        btn.click();
+
+        // After finishing, the answer input and submit button style display should be 'none'
+        expect(input.style.display).toBe('none');
+        expect(btn.style.display).toBe('none');
+    });
+
+    it ('does not move player past starting line', () => {
+
+        // Ensure getUsername returns our test player
+        vi.spyOn(socketService, 'getUsername').mockReturnValue('alice');
 
         // Render initial leaderboard with alice at score 0
         // cast to any to access updateProgress in testing
@@ -152,9 +183,6 @@ describe ('HudredMeterDashPage', () => {
         // Find initial position for the test player
         const initialX = findPositionFor('alice', layer);
         expect(initialX).toBeDefined();
-
-        // Ensure the page received a new problem handler
-        expect(onNew).toBeTruthy();
 
         // Simulate server sending a new problem
         const problem = { operand1: 3, operand2: 4 } as any;
@@ -168,7 +196,7 @@ describe ('HudredMeterDashPage', () => {
 
         // Prepare submitAnswer spy that will invoke the result handler and update scores
         vi.spyOn(socketService, 'submitAnswer').mockImplementation((_val: number) => {
-            // Simulate server response indicating correct answer
+            // Simulate server response indicating incorrect answer
             if (onResult) onResult({ correct: false, finished: false });
         });
 
@@ -181,12 +209,7 @@ describe ('HudredMeterDashPage', () => {
         const afterX = findPositionFor('alice', layer);
         // Make sure position exists
         expect(afterX).toBeDefined();
-
         expect(afterX).toEqual(initialX);
-    });
-
-    it ('does not move player past starting line', () => {
-        // Test implementation goes here
     });
 
     it ('shows correct rankings on leaderboard when game ends', () => {
