@@ -13,17 +13,16 @@ describe ('HudredMeterDashPage', () => {
     
     // helper function to find the position for a given username
     function findPositionFor(username: string, layer: Konva.Layer ): number | null {
-        // Find the tracks group that contains a Text with the username
-        const groups = layer.find('Group');
-        for (const g of groups) {
-            try {
-                const txt = (g as any).findOne && (g as any).findOne('Text');
-                if (txt && (txt as any).text && (txt as any).text() === username) {
-                    // return the circle inside this group
-                    const circle = (g as any).findOne('Circle');
-                    if (circle) return circle.x();
-                }
-            } catch {}
+        // read the playerLaneMap exposed by the layer
+        const internalMap = (layer as any).playerLaneMap as Map<string, any> | undefined;
+        if (internalMap) {
+            const entry = internalMap.get(username);
+            if (entry && entry.dot) {
+                const cNode = entry.dot as any;
+                const cx = (typeof cNode.x === 'function') ? cNode.x() : (cNode.attrs && cNode.attrs.x) || cNode.x;
+                const num = Number(cx);
+                return Number.isFinite(num) ? num : null;
+            }
         }
         return null;
     }
@@ -103,7 +102,28 @@ describe ('HudredMeterDashPage', () => {
     });
 
     it ('starts every player at the same starting position', () => {
-        // Test implementation goes here
+        // Ensure getUsername returns our test player (alice)
+        // There are multiple players in the game but we only control alice in this test
+        vi.spyOn(socketService, 'getUsername').mockReturnValue('alice');
+        // Render initial leaderboard with multiple players at score 0
+        (layer as any).updateProgress([
+            { username: 'alice', '100m_score': 0, active: true },
+            { username: 'bob', '100m_score': 0, active: true },
+            { username: 'carol', '100m_score': 0, active: true }
+        ]);
+        // Find initial position for each player
+        const aliceX = findPositionFor('alice', layer);
+        const bobX = findPositionFor('bob', layer);
+        const carolX = findPositionFor('carol', layer);
+        expect(aliceX).toBeDefined();
+        expect(aliceX).not.toBeNull();
+        expect(bobX).toBeDefined();
+        expect(bobX).not.toBeNull();
+        expect(carolX).toBeDefined();
+        expect(carolX).not.toBeNull();
+        // All should be at the same starting position
+        expect(aliceX).toEqual(bobX);
+        expect(aliceX).toEqual(carolX);
     });
 
     it ('gives new problem and moves player position forward on correct answer', () => {
