@@ -171,10 +171,10 @@ describe ('HudredMeterDashPage', () => {
         });
 
         // Enter incorrect answer and click submit
-        input.value = String(problem.operand1 * problem.operand2 - 5); // incorrect answer
+        input.value = String(problem.operand1 * problem.operand2 - 5); // incorrect answer (note that Mock implementation above always says incorrect)
         btn.click();
 
-        // After click, the leaderboard update should have moved the dot
+        // After click, the leaderboard update should NOT have moved the player
         // Get the position for test player after the update
         const afterX = findPositionFor('alice', layer);
         // Make sure position exists
