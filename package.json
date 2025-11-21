@@ -1,7 +1,6 @@
 {
   "name": "cse-110-project-team-19",
   "version": "1.0.0",
-  "type": "module",
   "private": true,
   "workspaces": [
     "client",
