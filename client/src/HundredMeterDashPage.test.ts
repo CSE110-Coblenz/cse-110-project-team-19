@@ -362,9 +362,5 @@ describe ('HudredMeterDashPage', () => {
         expect(afterX).toBeDefined();
         expect(afterX).toEqual(initialX);
     });
-
-    it ('shows correct rankings on leaderboard when game ends', () => {
-        // Test implementation goes here
-    });
     
 });
