@@ -51,6 +51,7 @@ export class HundredMeterDash {
             const b = this.randInt(PROBLEM_OPERAND_MIN, PROBLEM_OPERAND_MAX);
             arr.push({ type: 'MULTIPLICATION', operand1: a, operand2: b });
         }
+
         this.problems = arr;
     }
 
@@ -60,6 +61,11 @@ export class HundredMeterDash {
         for (const username of usernames) {
             this.indexByUser.set(username, 0);
         }
+    }
+
+    // Public: reset a single user's progress (used when a player rejoins)
+    resetUser(username: string): void {
+        this.indexByUser.set(username, 0);
     }
 
     private randInt(min: number, max: number): number {

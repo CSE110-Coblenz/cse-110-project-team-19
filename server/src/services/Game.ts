@@ -61,6 +61,18 @@ export class Game {
             active: true
         };
         this.players.set(username, player);
+        // Ensure per-game minigame state for this username is reset so a
+        // returning player starts fresh instead of inheriting previous progress.
+        try {
+            this.hundredMeterDash.resetUser(username);
+        } catch (e) {
+            // noop: if resetUser isn't available for some reason, don't crash
+        }
+        try {
+            this.javelin.resetUser(username);
+        } catch (e) {
+            // noop
+        }
     }
 
     // Check if username exists in this game
