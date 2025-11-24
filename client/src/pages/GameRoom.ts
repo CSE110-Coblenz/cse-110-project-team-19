@@ -42,7 +42,7 @@ export function createGameRoom(stage: Konva.Stage, onLeaveGame: () => void): Kon
     function updateTimer(gameState: GameState, time: number): void {
         let message = '';
 
-         currentGameState = gameState;
+        currentGameState = gameState;
 
         if (gameState === 'PREGAME') {
             message = `Game starts in: ${time}s`;
@@ -50,6 +50,7 @@ export function createGameRoom(stage: Konva.Stage, onLeaveGame: () => void): Kon
             message = `Next minigame in: ${time}s`;
         } else if (gameState === 'POSTGAME') {
             message = `Game Over!`;
+
         } else {
             message = `Time: ${time}s`;
         }
