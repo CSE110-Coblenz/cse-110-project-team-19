@@ -310,7 +310,7 @@ export function createHundredMeterDash(stage: Konva.Stage, onLeaveGame: () => vo
             if (currentProblem) {
                 problemText.text(`${currentProblem.operand1} × ${currentProblem.operand2} = ?`);
             }
-            feedbackText.text('Incorrect, try again');
+            feedbackText.text('Incorrect, try again (-2 points)');
         }
         layer.draw();
     }
