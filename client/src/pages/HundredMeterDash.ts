@@ -91,7 +91,7 @@ export function createHundredMeterDash(stage: Konva.Stage, onLeaveGame: () => vo
     submitBtn.style.position = 'absolute';
     submitBtn.style.left = '50%';
     submitBtn.style.top = `${problemAreaY + 115}px`;
-    submitBtn.style.transform = 'translateX(-50%)';
+    submitBtn.style.transform = 'translateX(110%) translateY(-120%)';
     submitBtn.style.padding = '8px 20px';
     submitBtn.style.fontSize = '16px';
     submitBtn.style.display = 'none';
@@ -310,7 +310,7 @@ export function createHundredMeterDash(stage: Konva.Stage, onLeaveGame: () => vo
             if (currentProblem) {
                 problemText.text(`${currentProblem.operand1} × ${currentProblem.operand2} = ?`);
             }
-            feedbackText.text('Incorrect, try again');
+            feedbackText.text('Incorrect, try again (-2 points)');
         }
         layer.draw();
     }
