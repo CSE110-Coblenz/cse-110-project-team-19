@@ -219,8 +219,11 @@ export function createGameRoom(stage: Konva.Stage, onLeaveGame: () => void): Kon
         });
         leaderboardGroup.add(title);
 
+        // Decide which players to render. On the final screen, only show top 3.
+        const displayedPlayers = isFinalScreen ? leaderboard.slice(0, 3) : leaderboard;
+
         // Render each player
-        leaderboard.forEach((player, index) => {
+        displayedPlayers.forEach((player, index) => {
             const yPos = 70 + (index * 30);
 
             const isWinner =
