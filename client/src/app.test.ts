@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { socketService } from './services/socket.js';
 
 // Not worth it to keep mocking Konva or DOM, just import the real thing
 import { createEntrancePage } from './pages/EntrancePage.js';
@@ -41,6 +42,8 @@ describe('Client Pages', () => {
         // destroy Konva stage to clean up canvases
         try { stage && stage.destroy && stage.destroy(); } catch { }
         document.body.innerHTML = '';
+        // Ensure any client socket is disconnected to avoid lingering connections
+        try { socketService.disconnect(); } catch {}
     });
 
     // PAGE CREATION TESTS

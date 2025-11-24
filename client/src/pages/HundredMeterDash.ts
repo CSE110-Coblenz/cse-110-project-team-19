@@ -215,6 +215,9 @@ export function createHundredMeterDash(stage: Konva.Stage, onLeaveGame: () => vo
     layer.add(tracksGroup);
     const localUsername = () => socketService.getUsername();
     const playerLaneMap: Map<string, { dot: Konva.Circle; laneIndex: number; label: Konva.Text }> = new Map();
+    // Expose internal structures for testing
+    (layer as any).playerLaneMap = playerLaneMap;
+    (layer as any).tracksGroup = tracksGroup;
 
     function renderTracks(leaderboard: Leaderboard) {
         tracksGroup.destroyChildren();
