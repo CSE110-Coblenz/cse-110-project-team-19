@@ -2,6 +2,7 @@
 import Konva from 'konva';
 import { Leaderboard, Problem } from '../../../shared/types/index.js';
 import standImageSrc from '../../../shared/fanStands.jpg';
+import playerIcon from '../../../shared/PlayerIcon.png';
 import { socketService } from '../services/socket.js';
 
 export function createHundredMeterDash(stage: Konva.Stage, onLeaveGame: () => void): Konva.Layer {
@@ -11,8 +12,8 @@ export function createHundredMeterDash(stage: Konva.Stage, onLeaveGame: () => vo
 
     const trackTop = stage.height() / 4;           // visual track start Y
     const trackHeight = stage.height() / 2;        // visual track height (middle half)
-    const trackLeft = 40;                          // left margin for track
-    const trackRightMargin = 40;                   // right margin
+    const trackLeft = 0;                          // left margin for track
+    const trackRightMargin = 0;                   // right margin
     const trackWidthVisual = stage.width() - trackLeft - trackRightMargin;
 
     const standsHeight = stage.height() / 4;
@@ -72,6 +73,13 @@ export function createHundredMeterDash(stage: Konva.Stage, onLeaveGame: () => vo
         listening: false,
     });
     backgroundGroup.add(grassRect);
+
+    const startLine = new Konva.Line({
+        points: [trackLeft + 30, trackTop, trackLeft + 30, trackTop + trackRect.height()],
+        stroke: '#ffffffff',
+        listening: false,
+    });
+    backgroundGroup.add(startLine);
 
     const problemAreaY = grassTop + 10;
     const answerInput = document.createElement('input');
@@ -231,9 +239,8 @@ export function createHundredMeterDash(stage: Konva.Stage, onLeaveGame: () => vo
         sorted.forEach((player, idx) => {
             const laneCenterY = trackTop + laneHeightDynamic / 2 + idx * laneHeightDynamic;
             const nameLabel = new Konva.Text({
-                x: trackLeft + 15,
+                x: trackLeft + 30,
                 y: laneCenterY - 8,
-                
                 text: player.username,
                 fontSize: 14,
                 fontStyle: player.username === localUsername() ? 'bold' : 'normal',
@@ -247,9 +254,39 @@ export function createHundredMeterDash(stage: Konva.Stage, onLeaveGame: () => vo
                 stroke: 'black',
                 strokeWidth: 1
             });
+
+            const entry = {
+                dot,
+                playerIcon: undefined as Konva.Image | undefined,
+                laneIndex: idx,
+                label: nameLabel,
+            };
+
             tracksGroup.add(nameLabel);
             tracksGroup.add(dot);
-            playerLaneMap.set(player.username, { dot, laneIndex: idx, label: nameLabel });
+            playerLaneMap.set(player.username, entry);
+
+            Konva.Image.fromURL(playerIcon, (image) => {
+                let radius = dot.radius();
+
+                image.width(radius * 6);
+                image.height(radius * 6);
+
+                // Center the image over its (x, y)
+                image.offsetX(image.width() / 2);
+                image.offsetY(image.height() / 2);
+
+                // Position exactly where the dot is
+                image.position({
+                    x: dot.x(),
+                    y: dot.y(),
+                });
+                entry.dot.hide();
+                entry.playerIcon = image;
+                image.listening(false);
+                tracksGroup.add(image);
+                layer.batchDraw(); // redraw when image finishes loading
+            });
         });
     }
 
@@ -259,6 +296,15 @@ export function createHundredMeterDash(stage: Konva.Stage, onLeaveGame: () => vo
             if (!entry) return;
             const ratio = Math.min(1, Math.max(0, player['100m_score'] / 100));
             entry.dot.x(trackLeft + ratio * (trackWidthVisual - 14)); // leave a little buffer before finish line
+            if(entry.playerIcon){
+                entry.playerIcon.x(trackLeft + ratio * (trackWidthVisual - 14));
+                if(ratio == 1){
+                    entry.label.x(trackLeft + ratio * (trackWidthVisual - 14) - 60);
+                }
+                else{
+                    entry.label.x(trackLeft + ratio * (trackWidthVisual - 14) + 30);
+                }
+            }
         });
         layer.batchDraw();
     }
