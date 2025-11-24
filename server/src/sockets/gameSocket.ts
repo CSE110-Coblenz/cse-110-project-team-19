@@ -120,8 +120,10 @@ export function setupGameSocket(io: Server): void {
                 const username = active.username;
                 const problem = game.getCurrentProblem(username);
                 if (!problem) {
-                    const doneResp: SubmitProblemResponse = { correct: false, finished: true };
-                    socket.emit('submitProblemResult', doneResp);
+                    // Distinguish between not-started vs genuinely finished
+                    const isDashPhase = game.getGameState() === '100M_DASH';
+                    const resp: SubmitProblemResponse = { correct: false, finished: isDashPhase };
+                    socket.emit('submitProblemResult', resp);
                     return;
                 }
 
