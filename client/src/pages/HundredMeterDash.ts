@@ -99,7 +99,7 @@ export function createHundredMeterDash(stage: Konva.Stage, onLeaveGame: () => vo
     submitBtn.style.position = 'absolute';
     submitBtn.style.left = '50%';
     submitBtn.style.top = `${problemAreaY + 115}px`;
-    submitBtn.style.transform = 'translateX(-50%)';
+    submitBtn.style.transform = 'translateX(110%) translateY(-120%)';
     submitBtn.style.padding = '8px 20px';
     submitBtn.style.fontSize = '16px';
     submitBtn.style.display = 'none';
@@ -222,7 +222,10 @@ export function createHundredMeterDash(stage: Konva.Stage, onLeaveGame: () => vo
     const tracksGroup = new Konva.Group();
     layer.add(tracksGroup);
     const localUsername = () => socketService.getUsername();
-    const playerLaneMap: Map<string, { dot: Konva.Circle; playerIcon? : Konva.Image; laneIndex: number; label: Konva.Text }> = new Map();
+    const playerLaneMap: Map<string, { dot: Konva.Circle; laneIndex: number; label: Konva.Text }> = new Map();
+    // Expose internal structures for testing
+    (layer as any).playerLaneMap = playerLaneMap;
+    (layer as any).tracksGroup = tracksGroup;
 
     function renderTracks(leaderboard: Leaderboard) {
         tracksGroup.destroyChildren();
@@ -353,7 +356,7 @@ export function createHundredMeterDash(stage: Konva.Stage, onLeaveGame: () => vo
             if (currentProblem) {
                 problemText.text(`${currentProblem.operand1} × ${currentProblem.operand2} = ?`);
             }
-            feedbackText.text('Incorrect, try again');
+            feedbackText.text('Incorrect, try again (-2 points)');
         }
         layer.draw();
     }
