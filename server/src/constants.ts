@@ -1,6 +1,6 @@
 // Game Settings
 // Duration of the pregame countdown timer in seconds
-export const PREGAME_DURATION = 2;
+export const PREGAME_DURATION = 15;
 
 // Duration of the pre-minigame countdown timer in seconds (for minigame pages)
 export const PRE_MINIGAME_DURATION = 10;
