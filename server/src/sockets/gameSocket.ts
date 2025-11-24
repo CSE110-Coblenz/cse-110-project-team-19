@@ -130,9 +130,9 @@ export function setupGameSocket(io: Server): void {
                 // Always send back the evaluation result
                 const result: SubmitProblemResponse = { correct, finished: false };
                 if (!correct) {
-                    // Incorrect: subtract 2 meters
-                    game.addDashMeters(username, -2);
-                    // Broadcast updated leaderboard after penalty
+                    // Incorrect: add time penalty (5 seconds) to be applied at finalization
+                    game.addDashPenalty(username, 5);
+                    // Broadcast updated leaderboard so penalty/time info can be displayed
                     const leaderboardPenalty = game.getLeaderboard();
                     io.to(`game-${game.getGameId()}`).emit('updateLeaderboard', { leaderboard: leaderboardPenalty });
                     socket.emit('submitProblemResult', result);
