@@ -90,12 +90,20 @@ socketService.setTransitionHandler((gameState: GameState) => {
             showPage('gameRoom');
             break;
         case '100M_DASH':
+            // Reset dash UI state before showing page
+            if ((dash100mLayer as any).resetDash) {
+                (dash100mLayer as any).resetDash();
+            }
             showPage('100mDash');
             break;
         case 'BEFORE_MINIGAME':
             showPage('gameRoom');
             break;
         case 'MINIGAME':
+            // Reset javelin UI state before sprint phase
+            if ((javelinLayer as any).resetJavelin) {
+                (javelinLayer as any).resetJavelin();
+            }
             showPage('javelin');
             (javelinLayer as any).setPhase('MINIGAME');
             break;

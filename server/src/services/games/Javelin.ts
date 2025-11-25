@@ -11,27 +11,35 @@ interface InternalMCProblem {
 }
 
 export class Javelin {
-    // Single shared list of problems for the whole game
+    // Shared list of problems for the whole game
     private problems: InternalMCProblem[] = [];
-    // Per-player progress state
-    private index: Map<string, number> = new Map();
-    private alive: Map<string, boolean> = new Map();
 
-    // Prepare per-player problem lists and reset progress
-    prepare(usernames: Iterable<string>): void {
-        // Generate one shared list
+    // Generate problems (stateless w.r.t players)
+    prepare(): void {
         this.problems = this.generateProblems();
-        // Reset per-player state
-        for (const username of usernames) {
-            this.index.set(username, 0);
-            this.alive.set(username, true);
-        }
     }
 
-    // Public: reset a single user's progress/alive state (used when a player rejoins)
-    resetUser(username: string): void {
-        this.index.set(username, 0);
-        this.alive.set(username, true);
+    getProblemCount(): number {
+        return this.problems.length;
+    }
+
+    getProblemAt(index: number): MultipleChoiceProblem | null {
+        const p = this.problems[index];
+        if (!p) return null;
+        return {
+            type: 'ADDITION',
+            operand1: p.operand1,
+            operand2: p.operand2,
+            A: p.choices.A,
+            B: p.choices.B,
+            C: p.choices.C,
+            D: p.choices.D
+        };
+    }
+
+    getCorrectLabelAt(index: number): ChoiceLabel | null {
+        const p = this.problems[index];
+        return p ? p.correct : null;
     }
 
     // Generate a list of multiple-choice addition problems (two addends, 1–3 digits)
@@ -83,48 +91,7 @@ export class Javelin {
         return out;
     }
 
-    // Return problem payload for a player (or null if no more problems or dead)
-    getProblemForPlayer(username: string): MultipleChoiceProblem | null {
-        if (!this.alive.get(username)) return null;
-        const idx = this.index.get(username) ?? 0;
-        if (idx >= this.problems.length) return null;
-        const p = this.problems[idx];
-        return {
-            type: 'ADDITION',
-            operand1: p.operand1,
-            operand2: p.operand2,
-            A: p.choices.A,
-            B: p.choices.B,
-            C: p.choices.C,
-            D: p.choices.D
-        };
-    }
-
-    // Submit answer for a player; returns { correct, finished }
-    submitAnswer(username: string, choice: ChoiceLabel): { correct: boolean; finished: boolean } {
-        if (!this.alive.get(username)) return { correct: false, finished: true };
-        const idx = this.index.get(username) ?? 0;
-        if (idx >= this.problems.length) return { correct: false, finished: true };
-
-        const p = this.problems[idx];
-        const correct = p.correct === choice;
-        if (!correct) {
-            // player dies
-            this.alive.set(username, false);
-            return { correct: false, finished: true };
-        }
-
-        // correct: advance to next round
-        this.index.set(username, idx + 1);
-        const finished = idx + 1 >= this.problems.length;
-        if (finished) this.alive.set(username, false); // finished sequence -> treat as done
-        return { correct: true, finished };
-    }
-
-    // Whether a player is still active/alive
-    isAlive(username: string): boolean {
-        return this.alive.get(username) ?? false;
-    }
+    // Player progress & alive state now lives in Game.Player (javelinAnswered / javelinAlive)
 
     // Helpers
     private randInt(min: number, max: number): number {

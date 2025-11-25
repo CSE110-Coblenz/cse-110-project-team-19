@@ -329,6 +329,16 @@ export function createHundredMeterDash(stage: Konva.Stage, onLeaveGame: () => vo
 
     let finished = false;
     let currentProblem: Problem | null = null;
+    function resetDash() {
+        finished = false;
+        currentProblem = null;
+        problemText.text('Waiting for first problem...');
+        feedbackText.text('');
+        answerInput.value = '';
+        answerInput.style.display = 'none';
+        submitBtn.style.display = 'none';
+        layer.draw();
+    }
     function handleNewProblem(problem: Problem) {
         if (finished) return;
         currentProblem = problem;
@@ -356,7 +366,7 @@ export function createHundredMeterDash(stage: Konva.Stage, onLeaveGame: () => vo
             if (currentProblem) {
                 problemText.text(`${currentProblem.operand1} × ${currentProblem.operand2} = ?`);
             }
-            feedbackText.text('Incorrect, try again (-2 points)');
+            feedbackText.text('Incorrect, try again (+5 seconds)');
         }
         layer.draw();
     }
@@ -373,6 +383,9 @@ export function createHundredMeterDash(stage: Konva.Stage, onLeaveGame: () => vo
     });
 
     socketService.setProblemHandlers(handleNewProblem, handleSubmitResult);
+
+    // Expose reset for rejoining new games
+    (layer as any).resetDash = resetDash;
 
     (layer as any).showInput = () => {
         if (!finished) {
