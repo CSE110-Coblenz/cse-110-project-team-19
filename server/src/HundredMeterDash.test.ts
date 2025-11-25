@@ -1,70 +1,46 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { HundredMeterDash } from './services/games/HundredMeterDash.js';
-import { HUNDRED_METER_DASH_PROBLEM_COUNT} from './constants.js';
+import { HUNDRED_METER_DASH_PROBLEM_COUNT } from './constants.js';
 import { Problem } from '../../shared/types/index.js';
 
 
-describe('HundredMeterDash Game Logic', () => {
+describe('HundredMeterDash (stateless provider)', () => {
     let hmd: HundredMeterDash;
-    const testUser = 'testPlayer';
 
     beforeEach(() => {
         hmd = new HundredMeterDash();
-        hmd.prepare([testUser]);
+        hmd.prepare();
     });
     afterEach(() => {
         vi.restoreAllMocks();
     });
 
-    it('generates the correct number of problems on prepare', () => {
-        const firstProblem = hmd.getFirstProblem();
-        expect(firstProblem).not.toBeNull();
+    it('generates the expected number of problems', () => {
+        expect(hmd.getProblemCount()).toBe(HUNDRED_METER_DASH_PROBLEM_COUNT);
+        expect(hmd.getFirstProblem()).not.toBeNull();
     });
 
-    it('returns the correct current problem for a player', () => {
-        const currentProblem = hmd.getCurrentProblem(testUser);
-        const firstProblem = hmd.getFirstProblem();
-        expect(currentProblem).toEqual(firstProblem);
+    it('returns same first problem via getFirstProblem and index 0', () => {
+        const first = hmd.getFirstProblem();
+        const atZero = hmd.getProblemAt(0);
+        expect(first).toEqual(atZero);
     });
 
-    it ('gives each player the same initial problem', () => {
-        const anotherUser = 'anotherPlayer';
-        hmd.prepare([testUser, anotherUser]);
-        const firstProblemUser1 = hmd.getCurrentProblem(testUser);
-        const firstProblemUser2 = hmd.getCurrentProblem(anotherUser);
-        expect(firstProblemUser1).toEqual(firstProblemUser2);
+    it('returns null when index beyond problem count is requested', () => {
+        const beyond = hmd.getProblemAt(HUNDRED_METER_DASH_PROBLEM_COUNT);
+        expect(beyond).toBeNull();
     });
 
-    it ('advances problem index correctly and indicates completion', () => {
-        const problemCount = HUNDRED_METER_DASH_PROBLEM_COUNT;
-        let finished = false;
-        for (let i = 0; i < problemCount; i++) {
-            finished = hmd.advanceProblem(testUser);
-            if (i < problemCount - 1) {
-                expect(finished).toBe(false);
-            }
-        }
-        expect(finished).toBe(true);
-        const afterFinishProblem = hmd.getCurrentProblem(testUser);
-        expect(afterFinishProblem).toBeNull();
+    it('simulates differing player progress by index comparison', () => {
+        const pStart = hmd.getProblemAt(0);
+        const pLater = hmd.getProblemAt(1);
+        expect(pStart).not.toEqual(pLater);
     });
 
-    it ('advances a player without affecting others players', () => {
-        const anotherUser = 'anotherPlayer';
-        hmd.prepare([testUser, anotherUser]);
-        hmd.advanceProblem(testUser);
-        const currentProblemUser1 = hmd.getCurrentProblem(testUser);
-        const currentProblemUser2 = hmd.getCurrentProblem(anotherUser);
-        expect(currentProblemUser1).not.toEqual(currentProblemUser2);
-    });
-    
-    it ('computes correct answers for multiplication problems and division problems', () => {
-        const multiplicationProblem: Problem = { type: 'MULTIPLICATION', operand1: 7, operand2: 8 };
-        const multiplicationAnswer = hmd.getCorrectAnswer(multiplicationProblem);
-        expect(multiplicationAnswer).toBe(56);
-
-        const divisionProblem: Problem = { type: 'DIVISION', operand1: 56, operand2: 7 };
-        const divisionAnswer = hmd.getCorrectAnswer(divisionProblem);
-        expect(divisionAnswer).toBe(8);
+    it('computes correct answers for multiplication & division problems', () => {
+        const mult: Problem = { type: 'MULTIPLICATION', operand1: 7, operand2: 8 };
+        expect(hmd.getCorrectAnswer(mult)).toBe(56);
+        const div: Problem = { type: 'DIVISION', operand1: 56, operand2: 7 };
+        expect(hmd.getCorrectAnswer(div)).toBe(8);
     });
 });
