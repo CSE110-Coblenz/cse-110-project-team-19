@@ -371,14 +371,31 @@ export function createHundredMeterDash(stage: Konva.Stage, onLeaveGame: () => vo
         layer.draw();
     }
 
+    //  centralize submit logic so both the button
+    // and the Enter key path call exactly the same handler and send the same payload.
+    function attemptSubmit() {
+        if (finished) return;
+
+        const value = answerInput.value.trim();
+        const val = Number(value);
+
+        if (!Number.isFinite(val)) {
+            alert('Enter a valid number');
+            return;
+        }
+
+        socketService.submitAnswer(val);
+    }
+     //  clicking the HTML "Submit" button uses the shared submit handler.
     submitBtn.addEventListener('click', () => {
-        if (!finished) {
-            const val = Number(answerInput.value.trim());
-            if (Number.isFinite(val)) {
-                socketService.submitAnswer(val);
-            } else {
-                alert('Enter a valid number');
-            }
+        attemptSubmit();
+    });
+
+     //  pressing Enter while the answer input is focused also submits
+    // the answer via the same handler as clicking the button.
+    answerInput.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') {
+            attemptSubmit();
         }
     });
 
