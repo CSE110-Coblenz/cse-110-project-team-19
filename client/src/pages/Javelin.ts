@@ -57,6 +57,32 @@ export function createJavelin(stage: Konva.Stage, onLeaveGame: () => void): Konv
 
     layer.add(JavelinBackground);
 
+    const flightScene = new Konva.Group({
+        x: 0,
+        y: 0,
+        visible: false,
+    });
+
+    const flightSky = new Konva.Rect({
+        x: 0,
+        y: 0,
+        width: stage.width(),
+        height: stage.height() * 0.5,
+        fill: '#94d8efff',
+    });
+
+    const flightGrass = new Konva.Rect({
+        x: 0,
+        y: stage.height() * 0.5,
+        width: stage.width(),
+        height: stage.height() * 0.5,
+        fill: '#64cc68ff',
+    });
+
+    flightScene.add(flightSky);
+    flightScene.add(flightGrass);
+    layer.add(flightScene);
+
     // Display game name
     const gameNameText = new Konva.Text({
         x: 0,
@@ -133,6 +159,9 @@ export function createJavelin(stage: Konva.Stage, onLeaveGame: () => void): Konv
     (layer as any).updateTimer = (time: number) => {
         updateTimer(time);
     };
+    (layer as any).resetGame = () => {
+        resetGame();
+    };
     (layer as any).setPhase = (phase: string) => {
         animationMode = phase === 'JAVELIN_ANIMATION';
         if (animationMode) {
@@ -140,12 +169,21 @@ export function createJavelin(stage: Konva.Stage, onLeaveGame: () => void): Konv
             Object.values(btns).forEach(b => { b.style.display = 'none'; b.disabled = true; });
             problemText.text('Throw distance animation...');
             feedbackText.text('');
-            let exampleRatio = 0.7;
-            animateThrow(exampleRatio);
+
+            animateThrow(() => {
+                JavelinBackground.visible(false);
+                flightScene.visible(true);
+
+                // put javelin in the sky view and start fall / flight there
+                // position in new scene
+                animateFall();      // or whatever fall animation you use
+                layer.draw();
+            });
             // Keep arrow where it fell; future enhancement could animate based on score
         } else if (phase === 'MINIGAME') {
             // Reset for new sprint phase
             resetArrow();
+            resetArrowFlight();
         }
         layer.draw();
     };
@@ -235,35 +273,9 @@ export function createJavelin(stage: Konva.Stage, onLeaveGame: () => void): Konv
             socketService.submitMultipleChoice(label as 'A' | 'B' | 'C' | 'D');
         });
     });
-    /** 
-    // ===== Javelin arrow (local only) =====
-    const arrowGroup = new Konva.Group({ 
-        x: stage.width()/2, 
-        y: stage.height() - 100,
-    });
-    let off_rot = -stage.width()/2;
-    const shaft = new Konva.Rect({ 
-        x: off_rot + 200, 
-        y: -300, 
-        width: 3, 
-        height: 300, 
-        fill: 'brown'
-    });
-    shaft.rotate(45);
-    arrowGroup.add(shaft);
-    layer.add(arrowGroup);
-
-    const groundY = stage.height();
-
-    function resetArrow() {
-        arrowGroup.y(stage.height() - 200);
-        arrowGroup.rotation(0);
-        layer.batchDraw();
-    }
-    */
-
-    // ===== Javelin arrow (local only) =====
-
+    
+    // ===== Javelin arrow (being thrown) =====
+    
     // a bit above the bottom so the ground is visible
     const groundY = stage.height() - 40;
 
@@ -296,7 +308,38 @@ export function createJavelin(stage: Konva.Stage, onLeaveGame: () => void): Konv
         rotation: 45
     });
     arrowGroup.add(shaft);
-    layer.add(arrowGroup);
+    JavelinBackground.add(arrowGroup);
+
+
+    // ===== Javelin arrow (falling down) =====
+    // starting point near the thrower’s hand (tweak these if needed)
+    const fallStartX = 200;                 // move right/left to line up with sprite
+    const fallStartY = stage.height(); // move up/down to sit in the hand
+    const fallpivotX = 300;                 // move right/left to line up with sprite
+    const fallpivotY = 1.3*stage.height(); // move up/down to sit in the hand
+
+    // Group pivot = bottom of the spear
+    const arrowGroup_fall = new Konva.Group({
+        x: fallpivotX,
+        y: fallpivotY,
+    });
+    // spear geometry
+    const shaftLength_two = 300;
+
+    // Shaft: goes UP from the pivot
+    const shaft_two = new Konva.Rect({
+        x: -fallStartX,           
+        y: -fallStartY,
+        offsetX: 3,
+        offsetY: 150,         
+        width: 6,
+        height: shaftLength_two,
+        fill: 'brown',
+        rotation: 90,
+
+    });
+    arrowGroup_fall.add(shaft_two);
+    flightScene.add(arrowGroup_fall);
 
     function resetArrow() {
         arrowGroup.position({ x: pivotX, y: pivotY });
@@ -305,26 +348,47 @@ export function createJavelin(stage: Konva.Stage, onLeaveGame: () => void): Konv
         layer.batchDraw();
     }
 
-
-    function animateFall() {
-        const tween = new Konva.Tween({
-            node: arrowGroup,
-            duration: 0.8,
-            y: groundY,
-            easing: Konva.Easings.EaseIn,
-        });
-        tween.play();
+    function resetArrowFlight() {
+        arrowGroup_fall.position({ x: fallpivotX, y: fallpivotY }); 
+        arrowGroup_fall.scale({ x: 1, y: 1 });            // full size
+        layer.batchDraw();
     }
 
-    function animateThrow(ratio: number) {
-        resetArrow();
-        const angularSpeed = 180;                // deg/sec
-        const maxRotation = 90;                    // STOP at +135°
-        const startAngle = arrowGroup.rotation();   // usually 0°
+    function animateFall() {
+        resetArrowFlight();
+        const angularSpeed = 180; 
+        const scaleSpeed = 0.0005;               
+        const maxRotation = 70;           
+        const startAngle = arrowGroup_fall.rotation(); 
+        const anim = new Konva.Animation((frame) => {
+            if (!frame) return;
 
-        const startScale = 1;
-        const minScale = 0.4;                       // smallest size at r = 1
-        const finalScale = 1 - ratio * (1 - minScale);
+            const angleDiff = (frame.timeDiff * angularSpeed) / 10000;
+            const newAngle = arrowGroup_fall.rotation() + angleDiff;
+
+            if (newAngle >= startAngle + maxRotation) {
+                arrowGroup_fall.rotation(startAngle + maxRotation);
+                arrowGroup_fall.scale();
+
+                const currentScale = arrowGroup_fall.scaleX();
+                const newScale = currentScale - frame.timeDiff * scaleSpeed;
+
+                arrowGroup_fall.scale({x: newScale, y: newScale});
+                anim.stop();
+                return;
+            }
+            arrowGroup_fall.rotation(newAngle);
+        
+        }, layer);
+
+        anim.start();
+    }
+
+    function animateThrow(onReachSky: () => void) {
+        resetArrow();
+        const angularSpeed = 180;                
+        const maxRotation = 60;           
+        const startAngle = arrowGroup.rotation(); 
 
         const anim = new Konva.Animation((frame) => {
             if (!frame) return;
@@ -335,17 +399,13 @@ export function createJavelin(stage: Konva.Stage, onLeaveGame: () => void): Konv
             if (newAngle >= startAngle + maxRotation) {
                 arrowGroup.rotation(startAngle + maxRotation);
                 anim.stop();
+
+                onReachSky();
                 return;
             }
 
             arrowGroup.rotation(newAngle);
-
-            const progress = (newAngle - startAngle) / maxRotation;
-
-            const currentScale = startScale + (finalScale - startScale) * progress;
-            arrowGroup.scale({ x: currentScale, y: currentScale });
-            //mountgroup.scale({ x: currentScale, y: currentScale });
-
+        
         }, layer);
 
         anim.start();
@@ -384,6 +444,7 @@ export function createJavelin(stage: Konva.Stage, onLeaveGame: () => void): Konv
         });
         // reset arrow if needed
         resetArrow();
+        resetArrowFlight();
         layer.draw();
     }
 
@@ -410,6 +471,39 @@ export function createJavelin(stage: Konva.Stage, onLeaveGame: () => void): Konv
         }
         layer.draw();
     }
+
+    function resetGame() {
+        // core flags
+        alive = true;
+        isWaiting = false;
+        animationMode = false;
+
+        // show main scene, hide flight scene
+        JavelinBackground.visible(true);
+        flightScene.visible(false);
+
+        // reset arrows
+        resetArrow();
+        resetArrowFlight();
+        arrowGroup.rotation(0);
+        arrowGroup.scale({ x: 1, y: 1 });
+        arrowGroup_fall.rotation(0);
+        arrowGroup_fall.scale({ x: 1, y: 1 });
+
+        // reset texts
+        countdownText.text('Time: --s');
+        problemText.text('Waiting for problem...');
+        feedbackText.text('');
+
+        // reset buttons (hidden but ready)
+        Object.values(btns).forEach(b => {
+            b.style.display = 'none';
+            b.disabled = false;
+        });
+
+        layer.draw();
+    }
+
 
     socketService.setJavelinHandlers(handleNewMC, handleMCResult);
 
