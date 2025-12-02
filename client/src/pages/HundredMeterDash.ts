@@ -99,7 +99,7 @@ export function createHundredMeterDash(stage: Konva.Stage, onLeaveGame: () => vo
     submitBtn.style.position = 'absolute';
     submitBtn.style.left = '50%';
     submitBtn.style.top = `${problemAreaY + 115}px`;
-    submitBtn.style.transform = 'translateX(-50%)';
+    submitBtn.style.transform = 'translateX(110%) translateY(-120%)';
     submitBtn.style.padding = '8px 20px';
     submitBtn.style.fontSize = '16px';
     submitBtn.style.display = 'none';
@@ -326,6 +326,16 @@ export function createHundredMeterDash(stage: Konva.Stage, onLeaveGame: () => vo
 
     let finished = false;
     let currentProblem: Problem | null = null;
+    function resetDash() {
+        finished = false;
+        currentProblem = null;
+        problemText.text('Waiting for first problem...');
+        feedbackText.text('');
+        answerInput.value = '';
+        answerInput.style.display = 'none';
+        submitBtn.style.display = 'none';
+        layer.draw();
+    }
     function handleNewProblem(problem: Problem) {
         if (finished) return;
         currentProblem = problem;
@@ -353,23 +363,43 @@ export function createHundredMeterDash(stage: Konva.Stage, onLeaveGame: () => vo
             if (currentProblem) {
                 problemText.text(`${currentProblem.operand1} × ${currentProblem.operand2} = ?`);
             }
-            feedbackText.text('Incorrect, try again');
+            feedbackText.text('Incorrect, try again (+5 seconds)');
         }
         layer.draw();
     }
 
+    //  centralize submit logic so both the button
+    // and the Enter key path call exactly the same handler and send the same payload.
+    function attemptSubmit() {
+        if (finished) return;
+
+        const value = answerInput.value.trim();
+        const val = Number(value);
+
+        if (!Number.isFinite(val)) {
+            alert('Enter a valid number');
+            return;
+        }
+
+        socketService.submitAnswer(val);
+    }
+     //  clicking the HTML "Submit" button uses the shared submit handler.
     submitBtn.addEventListener('click', () => {
-        if (!finished) {
-            const val = Number(answerInput.value.trim());
-            if (Number.isFinite(val)) {
-                socketService.submitAnswer(val);
-            } else {
-                alert('Enter a valid number');
-            }
+        attemptSubmit();
+    });
+
+     //  pressing Enter while the answer input is focused also submits
+    // the answer via the same handler as clicking the button.
+    answerInput.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') {
+            attemptSubmit();
         }
     });
 
     socketService.setProblemHandlers(handleNewProblem, handleSubmitResult);
+
+    // Expose reset for rejoining new games
+    (layer as any).resetDash = resetDash;
 
     (layer as any).showInput = () => {
         if (!finished) {

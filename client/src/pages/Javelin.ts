@@ -135,6 +135,7 @@ export function createJavelin(stage: Konva.Stage, onLeaveGame: () => void): Konv
     let alive = true;
     let isWaiting = false; // when player is done, replace timer with waiting text
     let animationMode = false; // true during JAVELIN_ANIMATION phase
+    let finishedSprint = false; // track local completion of sprint
 
     function updateTimer(time: number): void {
         if (animationMode) {
@@ -415,11 +416,10 @@ export function createJavelin(stage: Konva.Stage, onLeaveGame: () => void): Konv
     function handlePlayerFall() {
         if (!alive) return;
         alive = false;
+        finishedSprint = true;
         isWaiting = true;
-        // Replace timer with waiting message
         countdownText.text('Waiting for other players...');
         feedbackText.text('');
-        // hide buttons
         Object.values(btns).forEach(b => { b.style.display = 'none'; b.disabled = true; });
         animateFall();
         layer.draw();
@@ -454,6 +454,7 @@ export function createJavelin(stage: Konva.Stage, onLeaveGame: () => void): Konv
             return;
         }
         if (resp.finished) {
+            finishedSprint = true;
             isWaiting = true;
             countdownText.text('Waiting for other players...');
             feedbackText.text('');
@@ -509,13 +510,27 @@ export function createJavelin(stage: Konva.Stage, onLeaveGame: () => void): Konv
 
     // Show/hide input methods for page visibility control
     (layer as any).showInput = () => {
-        if (alive) {
+        if (alive && !finishedSprint && !animationMode) {
             Object.values(btns).forEach(b => b.style.display = 'inline-block');
         }
     };
     (layer as any).hideInput = () => {
         Object.values(btns).forEach(b => b.style.display = 'none');
     };
+
+    function resetJavelin() {
+        alive = true;
+        isWaiting = false;
+        animationMode = false;
+        finishedSprint = false;
+        problemText.text('Waiting for problem...');
+        feedbackText.text('');
+        countdownText.text('Time: --s');
+        Object.values(btns).forEach(b => { b.style.display = 'none'; b.disabled = false; });
+        resetArrow();
+        layer.draw();
+    }
+    (layer as any).resetJavelin = resetJavelin;
 
     return layer;
 }

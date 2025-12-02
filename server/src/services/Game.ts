@@ -8,6 +8,9 @@ import { GameManager } from './GameManager.js';
 export class Game {
     private gameId: number;
     private players: Map<string, Player> = new Map();
+    // Track when the 100m dash started (ms since epoch) and per-player finish elapsed seconds
+    private hundredMeterStartTimeMs: number | null = null;
+    private hundredMeterFinishElapsedSec: Map<string, number> = new Map();
     private currentState: GameState = 'PREGAME';
     private gameTimer: NodeJS.Timeout | null = null;
     private timeRemaining: number = 0;
@@ -58,9 +61,21 @@ export class Game {
             "100m_score": 0,
             minigame1_score: 0,
             total_score: 0,
-            active: true
+            active: true,
+            penalty_seconds: 0,
+            finish_time_seconds: null,
+            dashAnswered: 0,
+            javelinAnswered: 0,
+            javelinAlive: true
         };
         this.players.set(username, player);
+    }
+
+    // Increment a player's accumulated dash penalty (seconds)
+    addDashPenalty(username: string, seconds: number): void {
+        const player = this.players.get(username);
+        if (!player) return;
+        player.penalty_seconds = (player.penalty_seconds ?? 0) + seconds;
     }
 
     // Check if username exists in this game
@@ -109,28 +124,45 @@ export class Game {
 
     // Public hook to prepare the 100m dash (called on transition into 100M_DASH)
     prepareHundredMeterDash(): void {
-        this.hundredMeterDash.prepare(this.players.keys());
+        this.hundredMeterDash.prepare();
+        this.hundredMeterStartTimeMs = Date.now();
+        this.hundredMeterFinishElapsedSec.clear();
+        for (const p of this.players.values()) {
+            p.dashAnswered = 0;
+            p.finish_time_seconds = null;
+            p.penalty_seconds = 0;
+        }
     }
 
     // Prepare javelin shared problem list & per-player indices
     prepareJavelin(): void {
-        this.javelin.prepare(this.players.keys());
+        this.javelin.prepare();
+        for (const p of this.players.values()) {
+            p.javelinAnswered = 0;
+            p.javelinAlive = true;
+        }
     }
 
     // Handle a player's submit for the javelin multiple-choice question
     handleJavelinSubmit(username: string, choice: 'A' | 'B' | 'C' | 'D'): { correct: boolean; finished: boolean } {
-        // Ignore submissions outside sprint phase
-        if (this.currentState !== 'MINIGAME') {
+        if (this.currentState !== 'MINIGAME') return { correct: false, finished: true };
+        const player = this.players.get(username);
+        if (!player || !player.javelinAlive) return { correct: false, finished: true };
+        const idx = player.javelinAnswered ?? 0;
+        const correctLabel = this.javelin.getCorrectLabelAt(idx);
+        if (correctLabel == null) return { correct: false, finished: true };
+        const correct = choice === correctLabel;
+        if (!correct) {
+            player.javelinAlive = false;
+            this.io.to(`game-${this.gameId}`).emit('updateLeaderboard', { leaderboard: this.getLeaderboard() });
             return { correct: false, finished: true };
         }
-        const res = this.javelin.submitAnswer(username, choice);
-        if (res.correct) {
-            // Award +1 per correct answer in sprint
-            this.addJavelinMeters(username, 1);
-        }
-        // Broadcast leaderboard after every attempt
+        player.javelinAnswered = idx + 1;
+        this.addJavelinMeters(username, 1);
+        const finished = player.javelinAnswered >= this.javelin.getProblemCount();
+        if (finished) player.javelinAlive = false;
         this.io.to(`game-${this.gameId}`).emit('updateLeaderboard', { leaderboard: this.getLeaderboard() });
-        return res;
+        return { correct: true, finished };
     }
 
     // Add meters/points to javelin (minigame1) score
@@ -143,12 +175,91 @@ export class Game {
 
     // Get the current problem for a player (or null if finished)
     getCurrentProblem(username: string): Problem | null {
-        return this.hundredMeterDash.getCurrentProblem(username);
+        const player = this.players.get(username);
+        if (!player) return null;
+        const idx = player.dashAnswered ?? 0;
+        if (idx >= this.hundredMeterDash.getProblemCount()) return null;
+        return this.hundredMeterDash.getProblemAt(idx);
     }
 
     // Advance the player's problem index; returns true if finished after advancing
     advanceProblem(username: string): boolean {
-        return this.hundredMeterDash.advanceProblem(username);
+        const player = this.players.get(username);
+        if (!player) return true;
+        player.dashAnswered = (player.dashAnswered ?? 0) + 1;
+        const finished = player.dashAnswered >= this.hundredMeterDash.getProblemCount();
+        if (finished && this.currentState === '100M_DASH' && this.hundredMeterStartTimeMs) {
+            if (!this.hundredMeterFinishElapsedSec.has(username)) {
+                const elapsed = (Date.now() - this.hundredMeterStartTimeMs) / 1000;
+                this.hundredMeterFinishElapsedSec.set(username, elapsed);
+                const penalty = player.penalty_seconds ?? 0;
+                player.finish_time_seconds = elapsed + penalty;
+            }
+            // After recording finish, check if all active players have finished to transition early
+            this.checkEarlyDashCompletion();
+        }
+        return finished;
+    }
+
+    // Determine if all active players have finished the 100m dash; if so transition early
+    private checkEarlyDashCompletion(): void {
+        if (this.currentState !== '100M_DASH') return; // only relevant during dash phase
+        const activePlayers = Array.from(this.players.values()).filter(p => p.active);
+        if (activePlayers.length === 0) return; // nothing to do
+        // Count how many active players have recorded finish time (in map) OR answered all problems
+        const allFinished = activePlayers.every(p => {
+            const recorded = this.hundredMeterFinishElapsedSec.has(p.username);
+            const completed = (p.dashAnswered ?? 0) >= this.hundredMeterDash.getProblemCount();
+            return recorded || completed;
+        });
+        if (!allFinished) return;
+        // Prevent double finalize if timer already expired and transitioned
+        // Ensure we still are in dash and timer exists
+        // Perform same sequence as natural timer expiration from 100M_DASH
+        this.stopTimer();
+        this.finalizeHundredMeterDash();
+        const nextState = this.getNextGameState(this.currentState); // should be BEFORE_MINIGAME
+        this.transitionToState(nextState);
+        this.io.to(`game-${this.gameId}`).emit('transitionGame', { game_state: nextState });
+        if (nextState !== 'POSTGAME') {
+            this.startTimer();
+        }
+    }
+
+    // Compute placement bonuses for players who finished the 100m dash.
+    // Uses a rank-based linear formula where first place gets (M-1)*placeMultiplier,
+    // second gets (M-2)*placeMultiplier, ..., last gets 0.
+    finalizeHundredMeterDash(placeMultiplier = 5): void {
+        const finished: { username: string; elapsed: number; penalty: number; finalTime: number }[] = [];
+        for (const [username, elapsed] of this.hundredMeterFinishElapsedSec.entries()) {
+            const player = this.players.get(username);
+            const penalty = player?.penalty_seconds ?? 0;
+            const finalTime = elapsed + penalty;
+            finished.push({ username, elapsed, penalty, finalTime });
+        }
+
+        // sort ascending by finalTime (smaller is better)
+        finished.sort((a, b) => a.finalTime - b.finalTime);
+        const M = finished.length;
+        if (M === 0) return;
+
+        // Award bonuses based on rank
+        for (let i = 0; i < finished.length; i++) {
+            const rank = i; // 0-based; 0 is first place
+            const bonus = (M - 1 - rank) * placeMultiplier;
+            const entry = finished[i];
+            const player = this.players.get(entry.username);
+            if (!player) continue;
+            // Apply bonus to 100m score at finalization time
+            player["100m_score"] = (player["100m_score"] ?? 0) + bonus;
+            // Set finish time (elapsed + penalty) on player for leaderboard display
+            player.finish_time_seconds = entry.finalTime;
+            // Update total score
+            player.total_score = player["100m_score"] + player.minigame1_score;
+        }
+
+        // Broadcast updated leaderboard
+        this.io.to(`game-${this.gameId}`).emit('updateLeaderboard', { leaderboard: this.getLeaderboard() });
     }
 
     // How many problems a player has answered correctly (their progress)
@@ -206,19 +317,15 @@ export class Game {
                 this.timeRemaining = PRE_MINIGAME_DURATION;
                 break;
             case 'MINIGAME':
-                // Global sprint timer for Javelin
                 this.timeRemaining = JAVELIN_DURATION;
                 this.prepareJavelin();
-                // Send first problem to each alive player privately
                 const gm = GameManager.getInstance();
                 for (const [username, player] of this.players.entries()) {
                     if (!player.active) continue;
-                    const problem = this.javelin.getProblemForPlayer(username);
+                    const problem = this.getJavelinProblem(username);
                     if (!problem) continue;
                     const socketId = gm.getSocketIdForUsername(username);
-                    if (socketId) {
-                        this.io.to(socketId).emit('sendMultipleChoice', { problem });
-                    }
+                    if (socketId) this.io.to(socketId).emit('sendMultipleChoice', { problem });
                 }
                 break;
             case 'JAVELIN_ANIMATION':
@@ -244,24 +351,24 @@ export class Game {
                 time: this.timeRemaining
             });
 
-            // When timer reaches 0, transition to next state
             if (this.timeRemaining <= 0) {
                 this.stopTimer();
                 const nextState = this.getNextGameState(this.currentState);
+                const prevState = this.currentState;
                 this.transitionToState(nextState);
 
-                // Prepare data when entering specific states
+                if (prevState === '100M_DASH') {
+                    this.finalizeHundredMeterDash();
+                }
+
                 if (nextState === '100M_DASH') {
                     this.prepareHundredMeterDash();
                 }
-                // If entering animation phase, no new data needed; clients will switch UI
 
-                // Emit transition event to all players in this game room
                 this.io.to(`game-${this.gameId}`).emit('transitionGame', {
                     game_state: nextState
                 });
 
-                // If we just entered 100M_DASH, broadcast the first problem to everyone
                 if (nextState === '100M_DASH') {
                     const first = this.hundredMeterDash.getFirstProblem();
                     if (first) {
@@ -269,7 +376,6 @@ export class Game {
                     }
                 }
 
-                // Automatically start the next state's timer unless we're in POSTGAME
                 if (nextState !== 'POSTGAME') {
                     this.startTimer();
                 }
@@ -279,7 +385,12 @@ export class Game {
 
     // Expose current javelin problem for a player
     getJavelinProblem(username: string) {
-        return this.javelin.getProblemForPlayer(username);
+        const player = this.players.get(username);
+        if (!player) return null;
+        if (!player.javelinAlive) return null;
+        const idx = player.javelinAnswered ?? 0;
+        if (idx >= this.javelin.getProblemCount()) return null;
+        return this.javelin.getProblemAt(idx);
     }
 
     // Stop the game timer

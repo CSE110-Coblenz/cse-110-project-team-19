@@ -54,8 +54,14 @@ export function createEntrancePage(stage: Konva.Stage, _onSuccess: () => void): 
     joinButton.add(buttonRect);
     joinButton.add(buttonText);
 
-    // Make button clickable
-    joinButton.on('click', async () => {
+    // To prevent users from repeatedly pressing Enter / button and making duplicate submissions
+    
+    let isJoining = false;
+
+    //  centralize join logic so both click and Enter use the same handler
+    async function attemptJoin() {
+        if (isJoining) return; // already joining, ignore extra presses
+
         const username = usernameInput.value.trim();
 
         if (!username) {
@@ -63,23 +69,24 @@ export function createEntrancePage(stage: Konva.Stage, _onSuccess: () => void): 
             return;
         }
 
-        const REG = /^[A-Za-z0-9_]{3,16}$/;                    
-        if (!REG.test(username)) {                              
+        const REG = /^[A-Za-z0-9_]{3,16}$/;
+        if (!REG.test(username)) {
             alert('Username must be 3–16 chars: letters, numbers, underscore only');
             return;
         }
-         joinButton.listening(false);
+
+        isJoining = true;
+        joinButton.listening(false);
 
         try {
             // First, call the API to validate username
             const response = await joinGame(username);
 
-             if (response.status === 'success') {
+            if (response.status === 'success') {
                 console.log('API join successful, connecting to socket...');
 
                 // Hide username input
                 usernameInput.style.display = 'none';
-                 
 
                 // Connect to socket with username
                 // Transition will be handled by universal transition handler in app.ts
@@ -90,8 +97,21 @@ export function createEntrancePage(stage: Konva.Stage, _onSuccess: () => void): 
         } catch (error) {
             console.error('Error joining game:', error);
             alert('Failed to join game. Please try again.');
-        }finally {
-         joinButton.listening(true); 
+        } finally {
+            isJoining = false;
+            joinButton.listening(true);
+        }
+    }
+
+    //  clicking the Konva "Join Game" button calls the shared handler
+    joinButton.on('click', () => {
+        void attemptJoin();
+    });
+
+    //  pressing Enter in the username input triggers the same join flow
+    usernameInput.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') {
+            void attemptJoin();
         }
     });
 
@@ -111,67 +131,63 @@ export function createEntrancePage(stage: Konva.Stage, _onSuccess: () => void): 
         height: stage.height(),
         fill: '#7ec850',
         stroke: 'black',
-        strokeWidth: 4
-        });
+        strokeWidth: 4,
+    });
     layer.add(rect1);
 
-    //Entrance Page elements
-    //Title: TRACK AND SOLVE
+    // Entrance Page elements
+    // Title: TRACK AND SOLVE
     const gamePage = new Konva.Group();
     const gameTitle = new Konva.Text({
-        text: "Track and Solve",
+        text: 'Track and Solve',
         x: 0,
         y: 40,
         width: stage.width(),
-        align: "center",
+        align: 'center',
         fontSize: Math.max(36, stage.width() * 0.1),
-        fontFamily: "Impact, system-ui, sans-serif",
-        fill: "#e31e24",
-        stroke: "black",
+        fontFamily: 'Impact, system-ui, sans-serif',
+        fill: '#e31e24',
+        stroke: 'black',
         strokeWidth: 3,
     });
-    
+
     const laneNumbersGroup = new Konva.Group();
 
-    const target = { x: 395, y: 0 }; // your vanishing point
+    const target = { x: 395, y: 0 }; // vanishing point
     const lanes = 5;
 
     const laneXs = [
-        170,  // lane 1 bottom
-        290,  // lane 2 bottom
-        405,  // lane 3 bottom
-        520,  // lane 4 bottom
-        635   // lane 5 bottom
+        170, // lane 1 bottom
+        290, // lane 2 bottom
+        405, // lane 3 bottom
+        520, // lane 4 bottom
+        635, // lane 5 bottom
     ];
 
     for (let i = 0; i < lanes; i++) {
-        // example bottom positions; replace with your own x,y
-        const x = laneXs[i];                 // near left edge
-        const y = stage.height() - 40;    // stacked near bottom
+        const x = laneXs[i];
+        const y = stage.height() - 40;
 
         const text = new Konva.Text({
             text: String(i + 1),
             x,
-            y,  
+            y,
             fontSize: 80,
-            fontStyle: "bold",
-            fill: "white",
-            stroke: "black",
+            fontStyle: 'bold',
+            fill: 'white',
+            stroke: 'black',
             strokeWidth: 3,
-            fontFamily: "Impact, system-ui, sans-serif",
+            fontFamily: 'Impact, system-ui, sans-serif',
         });
 
-        // rotate around center for correct aiming
         text.offsetX(text.width() / 2);
         text.offsetY(text.height() / 2);
 
-        // angle from this text to the target
         const dx = target.x - x;
         const dy = target.y - y;
         const angleRad = Math.atan2(dy, dx);
         const angleDeg = (angleRad * 180) / Math.PI;
 
-        // Rotate text so its "top" faces the target (add 90 degrees)
         text.rotation(angleDeg + 90);
 
         laneNumbersGroup.add(text);
@@ -182,7 +198,7 @@ export function createEntrancePage(stage: Konva.Stage, _onSuccess: () => void): 
         fill: '#ED8272',
         stroke: 'black',
         strokeWidth: 5,
-        closed: true
+        closed: true,
     });
 
     const Line1 = new Konva.Line({
@@ -218,7 +234,7 @@ export function createEntrancePage(stage: Konva.Stage, _onSuccess: () => void): 
     gamePage.add(laneNumbersGroup);
     gamePage.add(gameTitle);
 
-    //Adding the gameEntrance background
+    // Adding the entrance background
     layer.add(gamePage);
 
     // Expose method to manually show/hide the input (called by app.ts)
@@ -228,11 +244,20 @@ export function createEntrancePage(stage: Konva.Stage, _onSuccess: () => void): 
         }
     };
 
-    (layer as any).hideInput = () => {
+        (layer as any).hideInput = () => {
         if (usernameInput.parentNode) {
             usernameInput.style.display = 'none';
         }
     };
+
     layer.add(joinButton);
+
+   
+   
+    (layer as any).handleJoinClick = () => {
+        void attemptJoin();
+    };
+
     return layer;
 }
+

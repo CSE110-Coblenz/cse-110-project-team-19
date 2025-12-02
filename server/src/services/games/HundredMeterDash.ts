@@ -3,31 +3,24 @@ import { HUNDRED_METER_DASH_PROBLEM_COUNT, PROBLEM_OPERAND_MIN, PROBLEM_OPERAND_
 
 export class HundredMeterDash {
     private problems: Problem[] = [];
-    private indexByUser: Map<string, number> = new Map();
 
-    // Prepare a fresh problem set and reset per-player progress
-    prepare(usernames: Iterable<string>): void {
+    // Prepare (generate) a fresh problem set for the dash. Player progress now lives on Player objects.
+    prepare(): void {
         this.generateProblems();
-        this.resetProgress(usernames);
     }
 
-    // Return the very first problem in the set (used to broadcast at game start)
+    getProblemCount(): number {
+        return this.problems.length;
+    }
+
+    // Return problem at given index or null if out of range
+    getProblemAt(index: number): Problem | null {
+        return this.problems[index] ?? null;
+    }
+
+    // Return first problem (convenience)
     getFirstProblem(): Problem | null {
-        return this.problems[0] ?? null;
-    }
-
-    // Get the current problem for a player, or null if finished
-    getCurrentProblem(username: string): Problem | null {
-        const idx = this.indexByUser.get(username) ?? 0;
-        return this.problems[idx] ?? null;
-    }
-
-    // Advance player's index; returns true if finished after advancing
-    advanceProblem(username: string): boolean {
-        const cur = this.indexByUser.get(username) ?? 0;
-        const next = cur + 1;
-        this.indexByUser.set(username, next);
-        return next >= this.problems.length;
+        return this.getProblemAt(0);
     }
 
     // Compute correct answer for a problem
@@ -51,16 +44,11 @@ export class HundredMeterDash {
             const b = this.randInt(PROBLEM_OPERAND_MIN, PROBLEM_OPERAND_MAX);
             arr.push({ type: 'MULTIPLICATION', operand1: a, operand2: b });
         }
+
         this.problems = arr;
     }
 
-    // Internal: reset progress for provided usernames
-    private resetProgress(usernames: Iterable<string>): void {
-        this.indexByUser.clear();
-        for (const username of usernames) {
-            this.indexByUser.set(username, 0);
-        }
-    }
+    // Progress reset now handled by Game on Player objects
 
     private randInt(min: number, max: number): number {
         return Math.floor(Math.random() * (max - min + 1)) + min;
