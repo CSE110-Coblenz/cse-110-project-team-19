@@ -8,6 +8,12 @@ export interface Player {
     minigame1_score: number;
     total_score: number;
     active: boolean;
+    penalty_seconds?: number;
+    finish_time_seconds?: number | null;
+    // Refactored progress fields (server-driven). Optional for backward compatibility.
+    dashAnswered?: number;          // count of correctly answered 100m dash problems
+    javelinAnswered?: number;       // count of correctly answered javelin problems
+    javelinAlive?: boolean;         // still active in javelin sprint
 }
 
 // Leaderboard type
