@@ -43,34 +43,46 @@ export function createGameRoom(stage: Konva.Stage, onLeaveGame: () => void): Kon
     function updateTimer(gameState: GameState, time: number): void {
         let message = '';
 
-         currentGameState = gameState;
+        currentGameState = gameState;
 
-        if (gameState === 'PREGAME') {
-            message = `Game starts in: ${time}s`;
-        } else if (gameState === 'BEFORE_MINIGAME') {
-            message = `Next minigame in: ${time}s`;
-        } else if (gameState === 'POSTGAME') {
+        if (gameState === 'POSTGAME') {
+            // Change 'Game Over' timer color to gold, hide leaderboard, render podium
             message = `Game Over!`;
+            timerbox.fill('#ffd700');
+            leaderboardGroup.hide();
+            renderPodium();
         } else {
-            message = `Time: ${time}s`;
+            if (gameState === 'PREGAME') {
+                message = `Game starts in: ${time}s`;
+            } else if (gameState === 'BEFORE_MINIGAME') {
+                message = `Next minigame in: ${time}s`;
+            } else {
+                message = `Time: ${time}s`;
+            }
+
+            if (podiumGroup) {
+                podiumGroup.destroy(); 
+                podiumGroup = null;
+            }
+            timerbox.fill('white');
+            leaderboardGroup.show();
+            
         }
 
         timerText.text(message);
-
-        if (gameState === 'POSTGAME') {
-            timerbox.fill('#ffd700');
-        } else {
-            timerbox.fill('white');
-        }
-
         layer.draw();
     }
 
     // ============ UPDATE VIEW ============
+    // Store latest leaderboard for access and modification during POSTGAME
+    let latestLeaderboard: Leaderboard = [];
+    let podiumGroup: Konva.Group | null = null;
+
     // Expose public method to update leaderboard (called by app.ts)
     (layer as any).updateLeaderboard = (leaderboard: Leaderboard) => {
         console.log('GameRoom: Updating leaderboard', leaderboard);
-        renderLeaderboard(leaderboard);
+        latestLeaderboard = leaderboard;
+        renderLeaderboard(latestLeaderboard);
     };
 
     // Expose public method to update timer (called by app.ts)
@@ -309,6 +321,110 @@ export function createGameRoom(stage: Konva.Stage, onLeaveGame: () => void): Kon
 
         layer.draw();
     }
+
+    function renderPodium() {
+        if (currentGameState !== 'POSTGAME') return;
+        
+        if (podiumGroup) {
+            podiumGroup.destroy(); 
+            podiumGroup = null;
+        }
+
+        podiumGroup = new Konva.Group();
+        
+
+        const podiumWidth = 200;
+        const podiumSpacing = 10;
+        const stageHeight = stage.height();
+        const stageWidth = stage.width();
+        
+        const totalWidth = (podiumWidth * 3) + (podiumSpacing * 2);
+        const podiumX = (stageWidth - totalWidth) / 2;
+        const podiumY = stageHeight * 0.8;
+
+        // Background
+        podiumGroup.add(new Konva.Rect({
+            x: podiumX - 20,
+            y: podiumY - stageHeight * 0.5 - 50,
+            width: totalWidth + 40,
+            height: stageHeight * 0.5 + 90,
+            fill: 'rgba(0, 0, 0, 0.4)',
+            cornerRadius: 10,
+        }));
+
+        // Podium configurations (order: 3rd, 1st, 2nd for left-to-right positioning)
+        const podiums = [
+            {
+                place: 2, // 3rd place
+                height: 0.2,
+                fill: '#cd7f32ff',
+                textShadow: 'black',
+            },
+            {
+                place: 0, // 1st place
+                height: 0.5,
+                fill: '#ffbf00ff',
+                textShadow: '#d19900ff',
+            },
+            {
+                place: 1, // 2nd place
+                height: 0.3,
+                fill: 'silver',
+                textShadow: 'black',
+            },
+        ];
+
+        // Create each podium
+        podiums.forEach(({ place, height, fill, textShadow }, index) => {
+            if (podiumGroup === null) return; // TypeScript null check, technically unnecessary but VSCode complains otherwise
+            const leaderboardEntry = latestLeaderboard[place];
+            
+            const xPos = podiumX + (podiumWidth + podiumSpacing) * index;
+            const podiumHeight = stageHeight * height;
+            const yPos = podiumY - podiumHeight;
+
+            // Podium rectangle (always render)
+            podiumGroup.add(new Konva.Rect({
+                x: xPos,
+                y: yPos,
+                width: podiumWidth,
+                height: podiumHeight,
+                fill: fill,
+                stroke: 'black',
+                strokeWidth: 2,
+            }));
+
+            // Only add text if player exists
+            if (leaderboardEntry) {
+                // Player name
+                podiumGroup.add(new Konva.Text({
+                    x: xPos,
+                    y: yPos - 35,
+                    width: podiumWidth,
+                    text: leaderboardEntry.username,
+                    fontSize: 30,
+                    fontStyle: 'bold',
+                    shadowColor: textShadow,
+                    shadowBlur: place === 0 ? 10 : 16,
+                    fill: place === 0 ? '#fffcf6ff' : (leaderboardEntry.active ? 'white' : '#f49a9aff'),
+                    align: 'center',
+                }));
+
+                // Score details
+                podiumGroup.add(new Konva.Text({
+                    x: xPos,
+                    y: yPos + 15,
+                    width: podiumWidth,
+                    text: `Total: ${leaderboardEntry.total_score} pts\n100M Dash: ${leaderboardEntry['100m_score']}\nMini: ${leaderboardEntry.minigame1_score}`,
+                    fontSize: 24,
+                    fill: 'white',
+                    align: 'center',
+                }));
+            }
+        });
+
+        layer.add(podiumGroup);
+    }            
 
     // Initial render with empty leaderboard
     renderLeaderboard([]);

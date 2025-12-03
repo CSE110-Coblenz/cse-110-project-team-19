@@ -117,6 +117,7 @@ socketService.setTransitionHandler((gameState: GameState) => {
         case 'POSTGAME':
             showPage('gameRoom');
             (gameRoomLayer as any).setRules();
+            (gameRoomLayer as any).updateTimer('POSTGAME', 0);
             break;
         default:
             console.warn('Unknown game state:', gameState);
