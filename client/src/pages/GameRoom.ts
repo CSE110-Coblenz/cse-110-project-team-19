@@ -8,7 +8,7 @@ export function createGameRoom(stage: Konva.Stage, onLeaveGame: () => void): Kon
     const layer = new Konva.Layer();
 
     let currentGameState: GameState = 'PREGAME';
-
+    // ============ TIMER ============
     // Countdown timer at the top center
     const timerText = new Konva.Text({
         x: 0,
@@ -66,6 +66,7 @@ export function createGameRoom(stage: Konva.Stage, onLeaveGame: () => void): Kon
         layer.draw();
     }
 
+    // ============ UPDATE VIEW ============
     // Expose public method to update leaderboard (called by app.ts)
     (layer as any).updateLeaderboard = (leaderboard: Leaderboard) => {
         console.log('GameRoom: Updating leaderboard', leaderboard);
@@ -78,6 +79,41 @@ export function createGameRoom(stage: Konva.Stage, onLeaveGame: () => void): Kon
         updateTimer(gameState, time);
     };
 
+    (layer as any).setRules = (game: 'dash' | 'javelin') => {
+        switch (game) { 
+            case 'dash':
+                rulesTitle.text('100 METER DASH RULES:');
+                rulesText.text(
+                    '• All players will start at the starting line when the game begins\n'+
+                    '\n• Each Player will need to answer 10 questions correctly to cross the finish line \n'+
+                    '\n• Each correct answer will move your player forward\n' +
+                    '\n• Each incorrect answer will deduct 2 points from your score\n' +
+                    '\n• All players have 60 seconds to play the game \n' 
+                );
+                rulesBoard.visible(true);
+                rulesTitle.visible(true);
+                rulesText.visible(true);
+                break;
+            case 'javelin':
+                rulesTitle.text('JAVELIN THROW RULES:');
+                rulesText.text(
+                    '• All players will be given 20 seconds to answer as many questions correctly as possible\n'+
+                    '\n• If the players answer incorrectly, the game will end early \n'+
+                    '\n• The more questions you answer, the more points are added to your score \n' 
+                );
+                rulesBoard.visible(true);
+                rulesTitle.visible(true);
+                rulesText.visible(true);
+                break;
+            default:
+                rulesBoard.visible(false);
+                rulesTitle.visible(false);
+                rulesText.visible(false);
+                break;
+        }
+    }
+
+    // ============ GRAPHIC UI ============
     //Game Room Interactive design
     let field = new Konva.Group({
         x: 0,
@@ -132,7 +168,7 @@ export function createGameRoom(stage: Konva.Stage, onLeaveGame: () => void): Kon
     layer.add(field);
     stage.add(layer);
 
-    //
+    // ============ LEAVE BUTTON ============
 
     // Leave Game button
     const buttonWidth = 150;
@@ -178,6 +214,38 @@ export function createGameRoom(stage: Konva.Stage, onLeaveGame: () => void): Kon
         stage.container().style.cursor = 'default';
     });
 
+    // ============ RULES ============
+    const rulesBoard = new Konva.Rect({
+        x:100,
+        y:200,
+        height: 300,
+        width: 330,
+        fill:"#ffd700",
+        stroke: "black",
+        strokeWidth: 2,
+    });
+    const rulesTitle = new Konva.Text({
+        x: rulesBoard.x() + 20,
+        y: rulesBoard.y() + 8,
+        text: 'GAME RULES',
+        fontSize: 22,
+        fontStyle: 'bold',
+        fill: "black"
+    });
+    const rulesText = new Konva.Text({
+        x: rulesTitle.x() + 12,
+        y: rulesTitle.y() + 30,
+        width: rulesBoard.width() - 30,
+        text: '',
+        fontSize: 14,
+        lineHeight: 1.3,
+        fill: "black"
+    });
+    layer.add(rulesBoard);
+    layer.add(rulesText);
+    layer.add(rulesTitle);
+
+    // ============ LEADERBOARD ============
     // Leaderboard text group
     let leaderboardGroup = new Konva.Group({
         x: 450,

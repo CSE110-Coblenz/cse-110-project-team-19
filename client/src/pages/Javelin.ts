@@ -309,9 +309,9 @@ export function createJavelin(stage: Konva.Stage, onLeaveGame: () => void): Konv
 
     // ===== Javelin arrow (falling down) =====
     // starting point near the thrower’s hand (tweak these if needed)
-    const fallStartX = 200;                 // move right/left to line up with sprite
-    const fallStartY = stage.height(); // move up/down to sit in the hand
-    const fallpivotX = 300;                 // move right/left to line up with sprite
+    const fallStartX = 0;                 // move right/left to line up with sprite
+    const fallStartY = stage.height() + 100 ; // move up/down to sit in the hand
+    const fallpivotX = 100;                 // move right/left to line up with sprite
     const fallpivotY = 1.3*stage.height(); // move up/down to sit in the hand
 
     // Group pivot = bottom of the spear
@@ -354,7 +354,7 @@ export function createJavelin(stage: Konva.Stage, onLeaveGame: () => void): Konv
         resetArrowFlight();
         const angularSpeed = 180; 
         const scaleSpeed = 0.0005;               
-        const maxRotation = 70;           
+        const maxRotation = 55;           
         const startAngle = arrowGroup_fall.rotation(); 
         const anim = new Konva.Animation((frame) => {
             if (!frame) return;

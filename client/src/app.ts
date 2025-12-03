@@ -88,6 +88,7 @@ socketService.setTransitionHandler((gameState: GameState) => {
     switch (gameState) {
         case 'PREGAME':
             showPage('gameRoom');
+            (gameRoomLayer as any).setRules('dash');
             break;
         case '100M_DASH':
             // Reset dash UI state before showing page
@@ -98,6 +99,7 @@ socketService.setTransitionHandler((gameState: GameState) => {
             break;
         case 'BEFORE_MINIGAME':
             showPage('gameRoom');
+            (gameRoomLayer as any).setRules('javelin');
             break;
         case 'MINIGAME':
             // Reset javelin UI state before sprint phase
@@ -114,6 +116,7 @@ socketService.setTransitionHandler((gameState: GameState) => {
             break;
         case 'POSTGAME':
             showPage('gameRoom');
+            (gameRoomLayer as any).setRules();
             break;
         default:
             console.warn('Unknown game state:', gameState);
