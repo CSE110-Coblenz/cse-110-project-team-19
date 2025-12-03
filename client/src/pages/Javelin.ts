@@ -276,9 +276,6 @@ export function createJavelin(stage: Konva.Stage, onLeaveGame: () => void): Konv
     });
     
     // ===== Javelin arrow (being thrown) =====
-    
-    // a bit above the bottom so the ground is visible
-    const groundY = stage.height() - 40;
 
     // starting point near the thrower’s hand (tweak these if needed)
     const throwStartX = 3*stage.width()/4 + 100;                 // move right/left to line up with sprite
