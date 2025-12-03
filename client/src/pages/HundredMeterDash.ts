@@ -1,7 +1,9 @@
 // HundredMeterDash.ts - Creates the hundred meter dash game layer
 import Konva from 'konva';
 import { Leaderboard, Problem } from '../../../shared/types/index.js';
+// @ts-ignore
 import standImageSrc from '../../../shared/fanStands.jpg';
+// @ts-ignore
 import playerIcon from '../../../shared/PlayerIcon.png';
 import { socketService } from '../services/socket.js';
 

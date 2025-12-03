@@ -2,6 +2,7 @@
 // NOTE: this will soon be split into MVC structure
 import Konva from 'konva';
 import { socketService } from '../services/socket.js';
+// @ts-ignore
 import JavelinImageSrc from "../../../shared/JavelinIcon.png";
 import { MultipleChoiceProblem, SubmitMultipleChoiceResponse } from '../../../shared/types/index.js';
 

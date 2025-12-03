@@ -1,5 +1,6 @@
 // GameRoom.ts - Creates the game room page layer
 import Konva from 'konva';
+// @ts-ignore
 import fansImageSrc from "../../../shared/fans.jpg";
 import { Leaderboard, GameState } from '../../../shared/types/index.js';
 
