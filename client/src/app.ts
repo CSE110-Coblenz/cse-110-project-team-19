@@ -105,6 +105,7 @@ socketService.setTransitionHandler((gameState: GameState) => {
                 (javelinLayer as any).resetJavelin();
             }
             showPage('javelin');
+            (javelinLayer as any).resetGame();
             (javelinLayer as any).setPhase('MINIGAME');
             break;
         case 'JAVELIN_ANIMATION':
